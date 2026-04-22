@@ -1,8 +1,6 @@
 // 云南25天自驾游数据
 // 2家庭 / 4大2小 / 带狗 / 飞机+租车自驾
 
-// ===== 基础配置 =====
-
 const KUNMING_COORD = { lat: 25.0389, lng: 102.7183 }
 const DALI_COORD = { lat: 25.6069, lng: 100.2679 }
 const LIJIANG_COORD = { lat: 26.8721, lng: 100.2297 }
@@ -11,8 +9,6 @@ const XISHUANG_BANNA_COORD = { lat: 21.9981, lng: 100.7973 }
 
 const PUBLIC_BASECAMP_LOCATION = '昆明长水国际机场，云南省昆明市'
 const PUBLIC_BASECAMP_COORDINATES = KUNMING_COORD
-
-// ===== 行程元数据 =====
 
 export const TRIP_META = {
   title: '云南25天自驾亲子游',
@@ -39,8 +35,6 @@ export const TRIP_META = {
   },
 }
 
-// ===== 地图标记点 =====
-
 export const MAP_POINTS = [
   {
     id: 'kunming',
@@ -56,7 +50,7 @@ export const MAP_POINTS = [
     label: '老张家',
     caption: '北京出发',
     familyId: 'zhang-family',
-    focusDay: 'thursday',
+    focusDay: 'day1',
     tone: 'critical',
     position: { lat: 39.9042, lng: 116.4074 },
   },
@@ -65,7 +59,7 @@ export const MAP_POINTS = [
     label: '老李家',
     caption: '上海出发',
     familyId: 'li-family',
-    focusDay: 'thursday',
+    focusDay: 'day1',
     tone: 'warning',
     position: { lat: 31.2304, lng: 121.4737 },
   },
@@ -111,28 +105,28 @@ export const MAP_ROUTES = [
   {
     id: 'route-kunming-dali',
     familyId: 'all',
-    focusDay: 'thursday',
+    focusDay: 'day3',
     tone: 'success',
     path: [KUNMING_COORD, { lat: 25.32, lng: 101.49 }, DALI_COORD],
   },
   {
     id: 'route-dali-lijiang',
     familyId: 'all',
-    focusDay: 'friday',
+    focusDay: 'day8',
     tone: 'info',
     path: [DALI_COORD, { lat: 26.35, lng: 100.15 }, LIJIANG_COORD],
   },
   {
     id: 'route-lijiang-shangrila',
     familyId: 'all',
-    focusDay: 'saturday',
+    focusDay: 'day15',
     tone: 'violet',
     path: [LIJIANG_COORD, { lat: 27.35, lng: 99.97 }, SHANGRI_LA_COORD],
   },
   {
     id: 'route-shangrila-xishuangbanna',
     familyId: 'all',
-    focusDay: 'sunday',
+    focusDay: 'day19',
     tone: 'success',
     path: [SHANGRI_LA_COORD, XISHUANG_BANNA_COORD],
   },
@@ -211,8 +205,6 @@ export const MAP_FACILITIES = [
   },
 ]
 
-// ===== 导航菜单 =====
-
 export const NAV_ITEMS = [
   { id: 'itinerary', label: '行程' },
   { id: 'stay', label: '住宿' },
@@ -222,23 +214,21 @@ export const NAV_ITEMS = [
   { id: 'families', label: '家庭' },
 ]
 
-// ===== 25天概览（简化为5个主要阶段） =====
-
 export const DAYS = [
   { id: 'day1', shortLabel: 'Day 1', title: '昆明抵达', weather: '晴', temperature: '26°C', caution: '低' },
   { id: 'day2', shortLabel: 'Day 2', title: '石林 · 滇池', weather: '晴', temperature: '28°C', caution: '低' },
   { id: 'day3', shortLabel: 'Day 3', title: '昆明→大理', weather: '多云', temperature: '24°C', caution: '中' },
-  { id: 'day4', shortLabel: 'Day 4', title: '大理 · 洱海', weather: '晴', temperature: '25°C', caution: '低' },
+  { id: 'day4', shortLabel: 'Day 4', title: '大理·洱海', weather: '晴', temperature: '25°C', caution: '低' },
   { id: 'day5', shortLabel: 'Day 5', title: '大理古城', weather: '晴', temperature: '26°C', caution: '低' },
-  { id: 'day6', shortLabel: 'Day 6', title: '双廊 · 喜洲', weather: '多云', temperature: '24°C', caution: '低' },
+  { id: 'day6', shortLabel: 'Day 6', title: '双廊·喜洲', weather: '多云', temperature: '24°C', caution: '低' },
   { id: 'day7', shortLabel: 'Day 7', title: '苍山游览', weather: '阴', temperature: '22°C', caution: '低' },
   { id: 'day8', shortLabel: 'Day 8', title: '大理→丽江', weather: '晴', temperature: '25°C', caution: '低' },
   { id: 'day9', shortLabel: 'Day 9', title: '玉龙雪山', weather: '晴', temperature: '18°C', caution: '中' },
-  { id: 'day10', shortLabel: 'Day 10', title: '蓝月谷 · 冰川公园', weather: '晴', temperature: '16°C', caution: '中' },
+  { id: 'day10', shortLabel: 'Day 10', title: '蓝月谷·冰川公园', weather: '晴', temperature: '16°C', caution: '中' },
   { id: 'day11', shortLabel: 'Day 11', title: '丽江→泸沽湖', weather: '多云', temperature: '20°C', caution: '中' },
   { id: 'day12', shortLabel: 'Day 12', title: '泸沽湖环湖', weather: '晴', temperature: '22°C', caution: '低' },
   { id: 'day13', shortLabel: 'Day 13', title: '泸沽湖→虎跳峡', weather: '晴', temperature: '24°C', caution: '中' },
-  { id: 'day14', shortLabel: 'Day 14', title: '虎跳峡 → 丽江', weather: '晴', temperature: '26°C', caution: '低' },
+  { id: 'day14', shortLabel: 'Day 14', title: '虎跳峡→丽江', weather: '晴', temperature: '26°C', caution: '低' },
   { id: 'day15', shortLabel: 'Day 15', title: '丽江→香格里拉', weather: '多云', temperature: '20°C', caution: '中' },
   { id: 'day16', shortLabel: 'Day 16', title: '普达措国家公园', weather: '阴', temperature: '15°C', caution: '中' },
   { id: 'day17', shortLabel: 'Day 17', title: '松赞林寺', weather: '晴', temperature: '18°C', caution: '低' },
@@ -248,13 +238,11 @@ export const DAYS = [
   { id: 'day21', shortLabel: 'Day 21', title: '中科院热带植物园', weather: '晴', temperature: '30°C', caution: '低' },
   { id: 'day22', shortLabel: 'Day 22', title: '野象谷', weather: '阴', temperature: '28°C', caution: '中' },
   { id: 'day23', shortLabel: 'Day 23', title: '傣族园', weather: '晴', temperature: '32°C', caution: '低' },
-  { id: 'day24', shortLabel: 'Day 24', title: '告庄 · 星光夜市', weather: '晴', temperature: '30°C', caution: '低' },
+  { id: 'day24', shortLabel: 'Day 24', title: '告庄·星光夜市', weather: '晴', temperature: '30°C', caution: '低' },
   { id: 'day25', shortLabel: 'Day 25', title: '返程', weather: '晴', temperature: '28°C', caution: '低' },
 ]
 
 export const TIME_SLOTS = ['00', '06', '12', '18']
-
-// ===== 家庭 =====
 
 export const INITIAL_FAMILIES = [
   {
@@ -301,14 +289,12 @@ export const INITIAL_FAMILIES = [
   },
 ]
 
-// ===== 行程时间轴（简化版，每段代表2-3天） =====
-
 export const ITINERARY_ROWS = [
   {
     id: 'travel',
     label: '赶路',
     segments: [
-      { id: 'kunming-erhai', familyId: 'all', start: 0, span: 2, color: 'success', label: '昆明→大理' },
+      { id: 'kunming-dali', familyId: 'all', start: 0, span: 2, color: 'success', label: '昆明→大理' },
       { id: 'dali-lijiang', familyId: 'all', start: 3, span: 2, color: 'info', label: '大理→丽江' },
       { id: 'lijiang-shangrila', familyId: 'all', start: 7, span: 2, color: 'violet', label: '丽江→香格里拉' },
       { id: 'shangrila-xishuang', familyId: 'all', start: 12, span: 2, color: 'success', label: '香格里拉→版纳' },
@@ -330,15 +316,13 @@ export const ITINERARY_ROWS = [
     label: '后勤',
     segments: [
       { id: 'checkin-kunming', start: 0, span: 0.5, color: 'muted', label: '昆明取车' },
-      { id: 'hotel-switch', start: 3, span: 0.5, color: 'muted', label: '大理入住' },
-      { id: 'lijiang-hotel', start: 5, span: 0.5, color: 'muted', label: '丽江入住' },
-      { id: 'shangrila-hotel', start: 9, span: 0.5, color: 'muted', label: '香格里拉入住' },
-      { id: 'xishuang-hotel', start: 14, span: 0.5, color: 'muted', label: '版纳入住' },
+      { id: 'hotel-dali', start: 3, span: 0.5, color: 'muted', label: '大理入住' },
+      { id: 'hotel-lijiang', start: 5, span: 0.5, color: 'muted', label: '丽江入住' },
+      { id: 'hotel-shangrila', start: 9, span: 0.5, color: 'muted', label: '香格里拉入住' },
+      { id: 'hotel-xishuang', start: 14, span: 0.5, color: 'muted', label: '版纳入住' },
     ],
   },
 ]
-
-// ===== 餐饮安排 =====
 
 export const INITIAL_MEALS = [
   { id: 'meal-kunming-1', day: 'Day 1', meal: '昆明机场简餐', owner: '各自', status: 'Transit', note: '落地后简单补给，不耽误行程' },
@@ -355,8 +339,6 @@ export const INITIAL_MEALS = [
   { id: 'meal-xishuang-2', day: 'Day 24', meal: '告庄·星光夜市', owner: 'Walk-in', status: 'Assigned', note: '最后一天，逛夜市尝美食' },
 ]
 
-// ===== 费用 =====
-
 export const INITIAL_EXPENSES = [
   { id: 'flights', label: '往返机票（4大2小）', payer: '老张家', amount: 24000, split: '均摊', settled: false },
   { id: 'cars', label: '租车费用（25天 SUV）', payer: '老李家', amount: 12500, split: '均摊', settled: false },
@@ -366,8 +348,6 @@ export const INITIAL_EXPENSES = [
   { id: 'gas', label: '油费 + 高速费', payer: '老张家', amount: 3500, split: '均摊', settled: false },
   { id: 'dogs', label: '宠物相关（航空箱 + 宠物酒店）', payer: '老李家', amount: 1200, split: '均摊', settled: false },
 ]
-
-// ===== 活动 =====
 
 export const ACTIVITIES = [
   {
@@ -380,7 +360,7 @@ export const ACTIVITIES = [
   },
   {
     id: 'dali-erhai',
-    title: '大理 · 环洱海',
+    title: '大理·环洱海',
     status: 'Go',
     window: 'Day 3-7',
     description: '洱海自驾、双廊古镇、喜洲古镇、苍山索道、三塔寺',
@@ -412,8 +392,6 @@ export const ACTIVITIES = [
   },
 ]
 
-// ===== 住宿 =====
-
 export const STAY_DETAILS = {
   commandSummary: '全程分段住宿，提前1天确认入住',
   houseOps: [
@@ -430,8 +408,6 @@ export const STAY_DETAILS = {
     { label: 'Day 19-24 西双版纳', assignment: '老张家+老李家（告庄民宿）' },
   ],
 }
-
-// ===== 规划备注 =====
 
 export const INITIAL_NOTES = {
   itinerary: '主线：昆明→大理（3.5h）→丽江（2h）→香格里拉（3.5h）→西双版纳。全程约25天，每天行驶不超过4小时。',

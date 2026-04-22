@@ -22,7 +22,7 @@ import {
   RotateCcw,
   Route,
   Search,
-  设置,
+  Settings,
   Star,
   Sun,
   Users,
@@ -36,30 +36,30 @@ import CommandMap from './CommandMap'
 import InspectorRail from './InspectorRail'
 import { PUBLISH_CONFIG, isLiveExternalDataEnabled } from './publishConfig'
 import { usePersistedTripState } from './usePersistedTripState'
-import { DAYS, NAV_ITEMS, TIME_SLOTS, TRIP_M预计到达 } from './tripData'
+import { DAYS, NAV_ITEMS, TIME_SLOTS, TRIP_META } from './tripData'
 import {
   ENTITY_PAGE,
   ensureSelectionForPage,
-  get天Meta,
+  getDayMeta,
   getEntityById,
   getEntityBySelection,
   getEntitySummary,
   getEntityTitle,
-  getFamily准备度,
+  getFamilyReadiness,
   TRIP_DOCUMENT_STORAGE_KEY,
   VIEWER_PROFILE_STORAGE_KEY,
   clearLegacyTripStorage,
   getInitialTripDocument,
   getLinkedEntities,
   getLocationForEntity,
-  getPage备注,
+  getPageNote,
   getRouteForEntity,
   getItineraryItemEffectiveSpan,
-  getRouteSimulation时间窗口,
+  getRouteSimulationWindow,
   getSearchResults,
   getSlotLabel,
   getTasksByFamily,
-  getTasksFor天,
+  getTasksForDay,
   getTasksForEntity,
   getTimelineContext,
   makeEntityKey,
@@ -67,7 +67,7 @@ import {
   synchronizeRoutePaths,
   updateEntityInCollection,
 } from './tripModel'
-import { fetchWeatherBundle, getMapWeather, getMapWeatherTargets, getTrip天Weather } from './weather'
+import { fetchWeatherBundle, getMapWeather, getMapWeatherTargets, getTripDayWeather } from './weather'
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 const GOOGLE_MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID
@@ -99,14 +99,14 @@ const WEATHER_ICONS = {
 }
 
 const STATUS_STYLES = {
-  赶路: 'bg-[#58A6FF]/18 text-[#58A6FF]',
-  '周五抵达': 'bg-[#D29922]/18 text-[#D29922]',
+  Transit: 'bg-[#58A6FF]/18 text-[#58A6FF]',
+  'Friday Arrival': 'bg-[#D29922]/18 text-[#D29922]',
   Assigned: 'bg-[#58A6FF]/18 text-[#58A6FF]',
   Pending: 'bg-[#D29922]/18 text-[#D29922]',
   Open: 'bg-[#D29922]/18 text-[#D29922]',
-  已结: 'bg-[#3FB950]/18 text-[#3FB950]',
-  启动: 'bg-[#3FB950]/18 text-[#3FB950]',
-  关注: 'bg-[#D29922]/18 text-[#D29922]',
+  Settled: 'bg-[#3FB950]/18 text-[#3FB950]',
+  Go: 'bg-[#3FB950]/18 text-[#3FB950]',
+  Watch: 'bg-[#D29922]/18 text-[#D29922]',
 }
 
 const TIMELINE_COLORS = {
@@ -437,7 +437,7 @@ function clampTimelineCursor(slot) {
   return Math.min(Math.max(slot, 0), maxCursor)
 }
 
-function get天VisibleCursorRange(dayIndex) {
+function getDayVisibleCursorRange(dayIndex) {
   const dayStart = dayIndex * TIME_SLOTS.length
   return {
     start: dayStart + VISIBLE_TIMELINE_SLOT_START,
@@ -476,7 +476,7 @@ function getMissionLaunchCursor(dayIndex) {
 
 function getSuggestedPlaybackStartCursor(doc, cursorSlot, operationCheckpoints = []) {
   const windows = (doc.routes || [])
-    .map((route) => getRouteSimulation时间窗口(doc, route))
+    .map((route) => getRouteSimulationWindow(doc, route))
     .filter((window) => Number.isFinite(window.start) && Number.isFinite(window.end))
     .sort((left, right) => left.start - right.start)
   const checkpoints = (operationCheckpoints || [])
@@ -551,7 +551,7 @@ function formatNameList(labels) {
   return `${cleanLabels.slice(0, -1).join(', ')} + ${cleanLabels[cleanLabels.length - 1]}`
 }
 
-function strip天Prefix(label) {
+function stripDayPrefix(label) {
   return (label || '').replace(/^[A-Za-z]{3}\s+/, '')
 }
 
@@ -612,7 +612,7 @@ function buildOperationGateContext(doc, gate) {
 
   const primaryItem = gate.items[0]
   const dayId = primaryItem.dayId || gate.dayId || 'thu'
-  const dayMeta = get天Meta(dayId) || getCursor天(gate.startSlot)
+  const dayMeta = getDayMeta(dayId) || getCursor天(gate.startSlot)
   const theme = MISSION_LAUNCH_THEME[dayId] || MISSION_LAUNCH_THEME.fri
   const briefing = DAY_BRIEFING_COPY[dayId] || DAY_BRIEFING_COPY.thu
   const gateItemsWithType = gate.items.map((item) => ({ ...item, type: 'itineraryItem' }))
@@ -646,11 +646,11 @@ function buildOperationGateContext(doc, gate) {
       .filter(Boolean),
   )
   const unitCount = families.length || Math.max(related路线.length, 1)
-  const launchLabel = strip天Prefix(getSlotLabel(gate.startSlot))
+  const launchLabel = stripDayPrefix(getSlotLabel(gate.startSlot))
   const etaSlot = relatedTravelItems.length
     ? Math.max(...relatedTravelItems.map((item) => item.startSlot + getItineraryItemEffectiveSpan(doc, item)))
     : gate.startSlot + getItineraryItemEffectiveSpan(doc, primaryItem)
-  const etaLabel = strip天Prefix(getSlotLabel(etaSlot))
+  const etaLabel = stripDayPrefix(getSlotLabel(etaSlot))
   const participantLabel =
     !families.length
       ? gate.dayLabel || 'All units'
@@ -728,7 +728,7 @@ function buildDaily简报(doc, context) {
   const base = DAY_BRIEFING_COPY[day.id] || DAY_BRIEFING_COPY.thu
   const meals = doc.meals.filter((meal) => meal.dayId === day.id).slice(0, 3)
   const activities = doc.activities.filter((activity) => activity.dayId === day.id).slice(0, 3)
-  const tasks = getTasksFor天(doc, day.id).filter((task) => task.status !== 'done').slice(0, 4)
+  const tasks = getTasksForDay(doc, day.id).filter((task) => task.status !== 'done').slice(0, 4)
   const liveItems = context.liveEntities.filter((item) => item.dayId === day.id)
   const soonItems = [...context.nextEntities, ...context.prepSoon]
     .filter((item) => item.dayId === day.id)
@@ -889,7 +889,7 @@ function AppShell({
             className="flex w-full items-center justify-center px-3 py-3.5 text-[#8B949E] transition-colors hover:bg-[#1f2a34] hover:text-[#C9D1D9]"
             title="设置"
           >
-            <设置 size={20} strokeWidth={1.6} />
+            <Settings size={20} strokeWidth={1.6} />
           </button>
         </div>
       </div>
@@ -902,7 +902,7 @@ function AppShell({
             </div>
             <div className="h-5 w-px bg-[#30363D]" />
             <div className="text-[10px] font-bold uppercase tracking-widest text-[#8B949E]">
-              {TRIP_M预计到达.commandName}
+              {TRIP_META.commandName}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -1802,8 +1802,8 @@ function TimelineBoard({
                   {rowItems.map((item) => {
                     const itemSpan = getItineraryItemEffectiveSpan(doc, item)
                     const itemEnd = item.startSlot + itemSpan
-                    const item天Index = Math.min(Math.max(Math.floor(item.startSlot / TIME_SLOTS.length), 0), days.length - 1)
-                    const visibleRange = get天VisibleCursorRange(item天Index)
+                    const itemDayIndex = Math.min(Math.max(Math.floor(item.startSlot / TIME_SLOTS.length), 0), days.length - 1)
+                    const visibleRange = getDayVisibleCursorRange(itemDayIndex)
                     const clippedStart = Math.max(item.startSlot, visibleRange.start)
                     const clippedEnd = Math.min(itemEnd, visibleRange.end)
                     if (clippedEnd <= clippedStart) return null
@@ -2637,7 +2637,7 @@ function ItineraryPage({
             <div>
               <Page备注sCard
                 title="规划笔记"
-                value={getPage备注(doc, 'itinerary')}
+                value={getPageNote(doc, 'itinerary')}
                 onChange={(value) => onUpdatePage备注('itinerary', value)}
                 onConvert={() => onConvertPage备注('itinerary')}
                 placeholder="添加规划笔记..."
@@ -2722,7 +2722,7 @@ function 住宿Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConv
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[minmax(380px,440px)_1fr] overflow-hidden">
       <div className="overflow-y-auto border-r border-[#30363D] bg-[#161b22] p-6">
-        <SectionTitle eyebrow="Basecamp" title={airbnb?.title || 'Basecamp'} meta={TRIP_M预计到达.subtitle} />
+        <SectionTitle eyebrow="Basecamp" title={airbnb?.title || 'Basecamp'} meta={TRIP_META.subtitle} />
         <SelectableCard
           selected={selection.type === 'location' && selection.id === airbnb.id}
           onClick={() => onSelectEntity('location', airbnb.id)}
@@ -2901,7 +2901,7 @@ function 住宿Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConv
         </div>
         <Page备注sCard
           title="住宿 note"
-          value={getPage备注(doc, 'stay')}
+          value={getPageNote(doc, 'stay')}
           onChange={(value) => onUpdatePage备注('stay', value)}
           onConvert={() => onConvertPage备注('stay')}
           placeholder="Record gate instructions, sleeping concerns, quiet hours, or house logistics..."
@@ -2953,7 +2953,7 @@ function 餐饮Page({ doc, selection, onSelectEntity, onToggleMealStatus, onUpda
                 className="grid min-w-0 grid-cols-[86px_1fr_120px] gap-3 text-left"
               >
                 <div>
-                  <div className="font-bold text-[#8B949E]">{get天Meta(meal.dayId)?.shortLabel || meal.dayId}</div>
+                  <div className="font-bold text-[#8B949E]">{getDayMeta(meal.dayId)?.shortLabel || meal.dayId}</div>
                   <div className="mt-1 text-[12px] font-black text-[#C9D1D9]">{meal.timeLabel}</div>
                 </div>
                 <div className="min-w-0">
@@ -2999,7 +2999,7 @@ function 餐饮Page({ doc, selection, onSelectEntity, onToggleMealStatus, onUpda
                     {selectedMeal.title}
                   </h2>
                   <div className="mt-2 text-[11px] text-[#8B949E]">
-                    {get天Meta(selectedMeal.dayId)?.title} at {selectedMeal.timeLabel} · {selectedMeal.reservationType}
+                    {getDayMeta(selectedMeal.dayId)?.title} at {selectedMeal.timeLabel} · {selectedMeal.reservationType}
                   </div>
                 </div>
                 <StatusPill tone={selectedMeal.status}>{selectedMeal.status}</StatusPill>
@@ -3111,7 +3111,7 @@ function 餐饮Page({ doc, selection, onSelectEntity, onToggleMealStatus, onUpda
             <div className="mt-5">
               <Page备注sCard
                 title="Feeding note"
-                value={getPage备注(doc, 'meals')}
+                value={getPageNote(doc, 'meals')}
                 onChange={(value) => onUpdatePage备注('meals', value)}
                 onConvert={() => onConvertPage备注('meals')}
                 placeholder="Capture grocery strategy, allergy notes, kid fallback meals, or timing calls for restaurant stops..."
@@ -3272,7 +3272,7 @@ function 活动Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConv
                     {selectedActivity.title}
                   </h2>
                   <div className="mt-2 text-[11px] text-[#8B949E]">
-                    {get天Meta(selectedActivity.dayId)?.title || selectedActivity.dayId} · {selectedActivity.window}
+                    {getDayMeta(selectedActivity.dayId)?.title || selectedActivity.dayId} · {selectedActivity.window}
                   </div>
                 </div>
                 <StatusPill tone={selectedActivity.status}>{selectedActivity.status}</StatusPill>
@@ -3302,7 +3302,7 @@ function 活动Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConv
                   <InfoRow icon={ArrowRight} label="Core plan" value={selectedActivity.description} />
                   <InfoRow icon={MapPin} label="Anchor location" value={selectedLocation?.title || 'No anchor location set'} />
                   <InfoRow icon={Search} label="Research read" value={research?.headline || selectedActivity.note || 'Build the mission details for this day.'} muted />
-                  <InfoRow icon={设置} label="Fallback" value={selectedActivity.backup} muted />
+                  <InfoRow icon={Settings} label="Fallback" value={selectedActivity.backup} muted />
                 </div>
               </div>
             </div>
@@ -3382,7 +3382,7 @@ function 活动Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConv
             <div className="mt-5">
               <Page备注sCard
                 title="活动 note"
-                value={getPage备注(doc, 'activities')}
+                value={getPageNote(doc, 'activities')}
                 onChange={(value) => onUpdatePage备注('activities', value)}
                 onConvert={() => onConvertPage备注('activities')}
                 placeholder="Capture alternate plans, micro-itineraries, weather triggers, or new activity ideas..."
@@ -3785,7 +3785,7 @@ function 费用Page({
 
         <Page备注sCard
           title="费用 note"
-          value={getPage备注(doc, 'expenses')}
+          value={getPageNote(doc, 'expenses')}
           onChange={(value) => onUpdatePage备注('expenses', value)}
           onConvert={() => onConvertPage备注('expenses')}
           placeholder="Capture split assumptions, cash items, or things to settle after the trip..."
@@ -3804,7 +3804,7 @@ function 家庭Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConv
         <div className="mt-5">
           <Page备注sCard
             title="家庭 note"
-            value={getPage备注(doc, 'families')}
+            value={getPageNote(doc, 'families')}
             onChange={(value) => onUpdatePage备注('families', value)}
             onConvert={() => onConvertPage备注('families')}
             placeholder="Capture cross-family coordination details..."
@@ -3817,7 +3817,7 @@ function 家庭Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConv
         <div className="grid gap-4">
           {doc.families.map((family) => {
             const tasks = getTasksByFamily(doc, family.id)
-            const readiness = getFamily准备度(doc, family.id)
+            const readiness = getFamilyReadiness(doc, family.id)
             return (
               <SelectableCard
                 key={family.id}
@@ -3862,7 +3862,7 @@ function withRefreshed家庭(nextDoc) {
     ...nextDoc,
     families: nextDoc.families.map((family) => ({
       ...family,
-      readiness: getFamily准备度(nextDoc, family.id),
+      readiness: getFamilyReadiness(nextDoc, family.id),
     })),
   }
 }
@@ -4149,7 +4149,7 @@ function App() {
     [displayDoc],
   )
   const timelineWeather天s = useMemo(
-    () => DAYS.map((day) => ({ ...day, ...getTrip天Weather(weatherState.targets, day) })),
+    () => DAYS.map((day) => ({ ...day, ...getTripDayWeather(weatherState.targets, day) })),
     [weatherState.targets],
   )
   const mapWeather = useMemo(
@@ -4635,7 +4635,7 @@ function App() {
   const addActivity = ({ title, dayId, window, description }) => {
     if (!title?.trim()) return
 
-    const fallback时间窗口 = `${get天Meta(dayId)?.shortLabel?.toUpperCase() || dayId?.toUpperCase() || 'DAY'} / flexible`
+    const fallback时间窗口 = `${getDayMeta(dayId)?.shortLabel?.toUpperCase() || dayId?.toUpperCase() || 'DAY'} / flexible`
     const newActivity = stampFamilyMetadata({
       id: `activity-user-${Date.now()}`,
       type: 'activity',
@@ -4667,7 +4667,7 @@ function App() {
   }
 
   const convertPage备注ToTask = (pageId) => {
-    const note = getPage备注(doc, pageId)
+    const note = getPageNote(doc, pageId)
     if (!note.trim()) return
     const pageToEntityType = {
       itinerary: 'activity',
