@@ -524,8 +524,8 @@ function getCurrentTripCursor(now = new Date()) {
 }
 
 function getCompactTravelLabel(item) {
-  const status = (item?.status || '').to低erCase()
-  const title = (item?.title || '').to低erCase()
+  const status = (item?.status || '').toLowerCase()
+  const title = (item?.title || '').toLowerCase()
 
   if (status.includes('return') || title.includes('rtb') || title.includes('homebound')) return 'RTB'
   if (status.includes('dinner') || title.includes('dinner')) return 'DIN'
@@ -663,7 +663,7 @@ function buildOperationGateContext(doc, gate) {
   const deploymentLabel = targetLocation
     ? `${participantLabel} deploying to ${targetTitle}.`
     : `${participantLabel} moving on ${gate.title}.`
-  const objective = MISSION_OBJECTIVE_COPY[dayId] || `Advance ${participantLabel.to低erCase()} into ${gate.title.to低erCase()}.`
+  const objective = MISSION_OBJECTIVE_COPY[dayId] || `Advance ${participantLabel.toLowerCase()} into ${gate.title.toLowerCase()}.`
 
   return {
     dayId,
