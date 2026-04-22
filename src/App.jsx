@@ -22,7 +22,7 @@ import {
   RotateCcw,
   Route,
   Search,
-  Settings,
+  设置,
   Star,
   Sun,
   Users,
@@ -36,30 +36,30 @@ import CommandMap from './CommandMap'
 import InspectorRail from './InspectorRail'
 import { PUBLISH_CONFIG, isLiveExternalDataEnabled } from './publishConfig'
 import { usePersistedTripState } from './usePersistedTripState'
-import { DAYS, NAV_ITEMS, TIME_SLOTS, TRIP_META } from './tripData'
+import { DAYS, NAV_ITEMS, TIME_SLOTS, TRIP_M预计到达 } from './tripData'
 import {
   ENTITY_PAGE,
   ensureSelectionForPage,
-  getDayMeta,
+  get天Meta,
   getEntityById,
   getEntityBySelection,
   getEntitySummary,
   getEntityTitle,
-  getFamilyReadiness,
+  getFamily准备度,
   TRIP_DOCUMENT_STORAGE_KEY,
   VIEWER_PROFILE_STORAGE_KEY,
   clearLegacyTripStorage,
   getInitialTripDocument,
   getLinkedEntities,
   getLocationForEntity,
-  getPageNote,
+  getPage备注,
   getRouteForEntity,
   getItineraryItemEffectiveSpan,
-  getRouteSimulationWindow,
+  getRouteSimulation时间窗口,
   getSearchResults,
   getSlotLabel,
   getTasksByFamily,
-  getTasksForDay,
+  getTasksFor天,
   getTasksForEntity,
   getTimelineContext,
   makeEntityKey,
@@ -67,7 +67,7 @@ import {
   synchronizeRoutePaths,
   updateEntityInCollection,
 } from './tripModel'
-import { fetchWeatherBundle, getMapWeather, getMapWeatherTargets, getTripDayWeather } from './weather'
+import { fetchWeatherBundle, getMapWeather, getMapWeatherTargets, getTrip天Weather } from './weather'
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 const GOOGLE_MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID
@@ -99,14 +99,14 @@ const WEATHER_ICONS = {
 }
 
 const STATUS_STYLES = {
-  Transit: 'bg-[#58A6FF]/18 text-[#58A6FF]',
-  'Friday Arrival': 'bg-[#D29922]/18 text-[#D29922]',
+  赶路: 'bg-[#58A6FF]/18 text-[#58A6FF]',
+  '周五抵达': 'bg-[#D29922]/18 text-[#D29922]',
   Assigned: 'bg-[#58A6FF]/18 text-[#58A6FF]',
   Pending: 'bg-[#D29922]/18 text-[#D29922]',
   Open: 'bg-[#D29922]/18 text-[#D29922]',
-  Settled: 'bg-[#3FB950]/18 text-[#3FB950]',
-  Go: 'bg-[#3FB950]/18 text-[#3FB950]',
-  Watch: 'bg-[#D29922]/18 text-[#D29922]',
+  已结: 'bg-[#3FB950]/18 text-[#3FB950]',
+  启动: 'bg-[#3FB950]/18 text-[#3FB950]',
+  关注: 'bg-[#D29922]/18 text-[#D29922]',
 }
 
 const TIMELINE_COLORS = {
@@ -119,9 +119,9 @@ const TIMELINE_COLORS = {
 }
 
 const EXPENSE_SPLIT_LABELS = {
-  equal: 'Equal split',
-  manual: 'Manual allocation',
-  individual: 'Individual',
+  equal: '均摊',
+  manual: '手动分摊',
+  individual: '个人',
 }
 
 const PLAYBACK_SPEED_OPTIONS = [1, 2, 3, 4]
@@ -437,7 +437,7 @@ function clampTimelineCursor(slot) {
   return Math.min(Math.max(slot, 0), maxCursor)
 }
 
-function getDayVisibleCursorRange(dayIndex) {
+function get天VisibleCursorRange(dayIndex) {
   const dayStart = dayIndex * TIME_SLOTS.length
   return {
     start: dayStart + VISIBLE_TIMELINE_SLOT_START,
@@ -449,8 +449,8 @@ function projectCursorToVisibleTimelineRatio(cursorSlot, dayCount = DAYS.length)
   const normalizedCursor = clampTimelineCursor(cursorSlot)
   const dayIndex = Math.min(Math.max(Math.floor(normalizedCursor / TIME_SLOTS.length), 0), dayCount - 1)
   const dayOffset = normalizedCursor - dayIndex * TIME_SLOTS.length
-  const clampedDayOffset = Math.min(Math.max(dayOffset, VISIBLE_TIMELINE_SLOT_START), VISIBLE_TIMELINE_SLOT_END)
-  const visibleCursor = dayIndex * VISIBLE_TIMELINE_SLOT_SPAN + (clampedDayOffset - VISIBLE_TIMELINE_SLOT_START)
+  const clamped天Offset = Math.min(Math.max(dayOffset, VISIBLE_TIMELINE_SLOT_START), VISIBLE_TIMELINE_SLOT_END)
+  const visibleCursor = dayIndex * VISIBLE_TIMELINE_SLOT_SPAN + (clamped天Offset - VISIBLE_TIMELINE_SLOT_START)
   const totalVisibleSlots = Math.max(dayCount * VISIBLE_TIMELINE_SLOT_SPAN, 0.0001)
   return Math.min(Math.max(visibleCursor / totalVisibleSlots, 0), 0.999999)
 }
@@ -464,7 +464,7 @@ function projectVisibleTimelineRatioToCursor(ratio, dayCount = DAYS.length) {
   return clampTimelineCursor(dayIndex * TIME_SLOTS.length + VISIBLE_TIMELINE_SLOT_START + dayVisibleOffset)
 }
 
-function getCursorHourInDay(cursorSlot) {
+function getCursorHourIn天(cursorSlot) {
   const normalizedCursor = clampTimelineCursor(cursorSlot)
   const dayOffset = normalizedCursor - Math.floor(normalizedCursor / TIME_SLOTS.length) * TIME_SLOTS.length
   return dayOffset * TIMELINE_HOURS_PER_SLOT
@@ -476,7 +476,7 @@ function getMissionLaunchCursor(dayIndex) {
 
 function getSuggestedPlaybackStartCursor(doc, cursorSlot, operationCheckpoints = []) {
   const windows = (doc.routes || [])
-    .map((route) => getRouteSimulationWindow(doc, route))
+    .map((route) => getRouteSimulation时间窗口(doc, route))
     .filter((window) => Number.isFinite(window.start) && Number.isFinite(window.end))
     .sort((left, right) => left.start - right.start)
   const checkpoints = (operationCheckpoints || [])
@@ -488,18 +488,18 @@ function getSuggestedPlaybackStartCursor(doc, cursorSlot, operationCheckpoints =
   const normalizedCursor = clampTimelineCursor(cursorSlot)
   if (!windows.length && !checkpoints.length) return normalizedCursor
 
-  const activeWindow = windows.find((window) => normalizedCursor >= window.start && normalizedCursor <= window.end)
-  if (activeWindow) return normalizedCursor
+  const active时间窗口 = windows.find((window) => normalizedCursor >= window.start && normalizedCursor <= window.end)
+  if (active时间窗口) return normalizedCursor
 
-  const nextWindow = windows.find((window) => window.start > normalizedCursor)
+  const next时间窗口 = windows.find((window) => window.start > normalizedCursor)
   const nextCheckpoint = checkpoints.find((checkpoint) => checkpoint.startSlot > normalizedCursor)
 
-  if (nextCheckpoint && (!nextWindow || nextCheckpoint.startSlot <= nextWindow.start)) {
+  if (nextCheckpoint && (!next时间窗口 || nextCheckpoint.startSlot <= next时间窗口.start)) {
     return clampTimelineCursor(Math.max(nextCheckpoint.startSlot - checkpointLeadIn, 0))
   }
 
-  if (nextWindow) {
-    return clampTimelineCursor(Math.max(nextWindow.start - routeLeadIn, 0))
+  if (next时间窗口) {
+    return clampTimelineCursor(Math.max(next时间窗口.start - routeLeadIn, 0))
   }
 
   if (nextCheckpoint) {
@@ -524,8 +524,8 @@ function getCurrentTripCursor(now = new Date()) {
 }
 
 function getCompactTravelLabel(item) {
-  const status = (item?.status || '').toLowerCase()
-  const title = (item?.title || '').toLowerCase()
+  const status = (item?.status || '').to低erCase()
+  const title = (item?.title || '').to低erCase()
 
   if (status.includes('return') || title.includes('rtb') || title.includes('homebound')) return 'RTB'
   if (status.includes('dinner') || title.includes('dinner')) return 'DIN'
@@ -538,7 +538,7 @@ function getCompactTravelLabel(item) {
   return fallback.replace(/[^a-z0-9]/gi, '').slice(0, 3).toUpperCase() || 'DRV'
 }
 
-function getCursorDay(cursorSlot) {
+function getCursor天(cursorSlot) {
   const dayIndex = Math.min(Math.floor(cursorSlot / TIME_SLOTS.length), DAYS.length - 1)
   return DAYS[Math.max(dayIndex, 0)] || DAYS[0]
 }
@@ -551,7 +551,7 @@ function formatNameList(labels) {
   return `${cleanLabels.slice(0, -1).join(', ')} + ${cleanLabels[cleanLabels.length - 1]}`
 }
 
-function stripDayPrefix(label) {
+function strip天Prefix(label) {
   return (label || '').replace(/^[A-Za-z]{3}\s+/, '')
 }
 
@@ -591,20 +591,20 @@ function getRelatedTravelItemsForGate(doc, gate) {
   const gateEntityKeys = new Set(
     gateItems.flatMap((item) => [makeEntityKey('itineraryItem', item.id), ...(item.linkedEntityKeys || [])]),
   )
-  const sameDayTravelItems = doc.itineraryItems.filter((item) => item.rowId === 'travel' && item.dayId === primaryItem.dayId)
-  const directlyLinkedTravelItems = sameDayTravelItems.filter((item) =>
+  const same天TravelItems = doc.itineraryItems.filter((item) => item.rowId === 'travel' && item.dayId === primaryItem.dayId)
+  const directlyLinkedTravelItems = same天TravelItems.filter((item) =>
     (item.linkedEntityKeys || []).some((key) => gateEntityKeys.has(key)),
   )
   if (directlyLinkedTravelItems.length) return directlyLinkedTravelItems
 
   const launchWaveEnd = gate.startSlot + 1.2
-  const sameWaveTravelItems = sameDayTravelItems.filter((item) => {
+  const sameWaveTravelItems = same天TravelItems.filter((item) => {
     const itemEnd = item.startSlot + getItineraryItemEffectiveSpan(doc, item)
     return itemEnd >= gate.startSlot - 0.1 && item.startSlot <= launchWaveEnd
   })
   if (sameWaveTravelItems.length) return sameWaveTravelItems
 
-  return sameDayTravelItems.filter((item) => item.startSlot >= gate.startSlot - 0.25 && item.startSlot <= gate.startSlot + 0.55)
+  return same天TravelItems.filter((item) => item.startSlot >= gate.startSlot - 0.25 && item.startSlot <= gate.startSlot + 0.55)
 }
 
 function buildOperationGateContext(doc, gate) {
@@ -612,7 +612,7 @@ function buildOperationGateContext(doc, gate) {
 
   const primaryItem = gate.items[0]
   const dayId = primaryItem.dayId || gate.dayId || 'thu'
-  const dayMeta = getDayMeta(dayId) || getCursorDay(gate.startSlot)
+  const dayMeta = get天Meta(dayId) || getCursor天(gate.startSlot)
   const theme = MISSION_LAUNCH_THEME[dayId] || MISSION_LAUNCH_THEME.fri
   const briefing = DAY_BRIEFING_COPY[dayId] || DAY_BRIEFING_COPY.thu
   const gateItemsWithType = gate.items.map((item) => ({ ...item, type: 'itineraryItem' }))
@@ -620,7 +620,7 @@ function buildOperationGateContext(doc, gate) {
     gateItemsWithType.flatMap((item) => getLinkedEntities(doc, item)),
   )
   const relatedTravelItems = getRelatedTravelItemsForGate(doc, gate)
-  const relatedRoutes = dedupeById(
+  const related路线 = dedupeById(
     relatedTravelItems
       .map((item) => getRouteForEntity(doc, { ...item, type: 'itineraryItem' }))
       .filter(Boolean),
@@ -629,7 +629,7 @@ function buildOperationGateContext(doc, gate) {
     [
       getLocationForEntity(doc, { ...primaryItem, type: 'itineraryItem' }),
       ...linkedEntities.filter((entity) => entity.type === 'location'),
-      ...relatedRoutes
+      ...related路线
         .map((route) => getEntityById(doc, 'location', route.destinationLocationId))
         .filter(Boolean),
     ].filter(Boolean),
@@ -638,19 +638,19 @@ function buildOperationGateContext(doc, gate) {
   const familyIds = [
     ...gate.items.flatMap((item) => item.familyIds || []),
     ...relatedTravelItems.flatMap((item) => item.familyIds || []),
-    ...relatedRoutes.map((route) => route.familyId).filter((familyId) => familyId && familyId !== 'all'),
+    ...related路线.map((route) => route.familyId).filter((familyId) => familyId && familyId !== 'all'),
   ]
   const families = dedupeById(
     familyIds
       .map((familyId) => getEntityById(doc, 'family', familyId))
       .filter(Boolean),
   )
-  const unitCount = families.length || Math.max(relatedRoutes.length, 1)
-  const launchLabel = stripDayPrefix(getSlotLabel(gate.startSlot))
+  const unitCount = families.length || Math.max(related路线.length, 1)
+  const launchLabel = strip天Prefix(getSlotLabel(gate.startSlot))
   const etaSlot = relatedTravelItems.length
     ? Math.max(...relatedTravelItems.map((item) => item.startSlot + getItineraryItemEffectiveSpan(doc, item)))
     : gate.startSlot + getItineraryItemEffectiveSpan(doc, primaryItem)
-  const etaLabel = stripDayPrefix(getSlotLabel(etaSlot))
+  const etaLabel = strip天Prefix(getSlotLabel(etaSlot))
   const participantLabel =
     !families.length
       ? gate.dayLabel || 'All units'
@@ -659,11 +659,11 @@ function buildOperationGateContext(doc, gate) {
         : formatNameList(families.map((family) => family.title))
   const targetTitle = targetLocation?.title || gate.title
   const targetMeta = targetLocation ? getEntitySummary(targetLocation) : primaryItem.status || gate.subtitle
-  const routeCount = relatedRoutes.length || Math.max(relatedTravelItems.length, 1)
+  const routeCount = related路线.length || Math.max(relatedTravelItems.length, 1)
   const deploymentLabel = targetLocation
     ? `${participantLabel} deploying to ${targetTitle}.`
     : `${participantLabel} moving on ${gate.title}.`
-  const objective = MISSION_OBJECTIVE_COPY[dayId] || `Advance ${participantLabel.toLowerCase()} into ${gate.title.toLowerCase()}.`
+  const objective = MISSION_OBJECTIVE_COPY[dayId] || `Advance ${participantLabel.to低erCase()} into ${gate.title.to低erCase()}.`
 
   return {
     dayId,
@@ -719,16 +719,16 @@ function findCrossedOperationCheckpoint(checkpoints, previousCursor, nextCursor,
   ) || null
 }
 
-function getPlaybackHighlightLocation(doc, context) {
+function getPlayback高lightLocation(doc, context) {
   return null
 }
 
-function buildDailyBriefing(doc, context) {
-  const day = getCursorDay(context.cursorSlot)
+function buildDaily简报(doc, context) {
+  const day = getCursor天(context.cursorSlot)
   const base = DAY_BRIEFING_COPY[day.id] || DAY_BRIEFING_COPY.thu
   const meals = doc.meals.filter((meal) => meal.dayId === day.id).slice(0, 3)
   const activities = doc.activities.filter((activity) => activity.dayId === day.id).slice(0, 3)
-  const tasks = getTasksForDay(doc, day.id).filter((task) => task.status !== 'done').slice(0, 4)
+  const tasks = getTasksFor天(doc, day.id).filter((task) => task.status !== 'done').slice(0, 4)
   const liveItems = context.liveEntities.filter((item) => item.dayId === day.id)
   const soonItems = [...context.nextEntities, ...context.prepSoon]
     .filter((item) => item.dayId === day.id)
@@ -748,7 +748,7 @@ function buildDailyBriefing(doc, context) {
   }
 }
 
-function StatusPill({ children, tone = 'Transit', className }) {
+function StatusPill({ children, tone = '赶路中', className }) {
   return (
     <span
       className={cn(
@@ -780,7 +780,7 @@ function SectionTitle({ eyebrow, title, meta }) {
   )
 }
 
-function NotesBox({ value, onChange, placeholder }) {
+function 备注sBox({ value, onChange, placeholder }) {
   return (
     <textarea
       value={value}
@@ -807,7 +807,7 @@ function SelectableCard({ selected, onClick, children, className = '' }) {
   )
 }
 
-function PageNotesCard({ title, value, onChange, onConvert, placeholder }) {
+function Page备注sCard({ title, value, onChange, onConvert, placeholder }) {
   return (
     <div className="border border-[#30363D] bg-[#161b22] p-4">
       <div className="mb-2 flex items-center justify-between">
@@ -817,10 +817,10 @@ function PageNotesCard({ title, value, onChange, onConvert, placeholder }) {
           onClick={onConvert}
           className="text-[9px] font-black uppercase tracking-wider text-[#58A6FF]"
         >
-          note to task
+          笔记转任务
         </button>
       </div>
-      <NotesBox value={value} onChange={onChange} placeholder={placeholder} />
+      <备注sBox value={value} onChange={onChange} placeholder={placeholder} />
     </div>
   )
 }
@@ -873,23 +873,23 @@ function AppShell({
             type="button"
             onClick={onExport}
             className="flex w-full items-center justify-center px-3 py-3.5 text-[#8B949E] transition-colors hover:bg-[#1f2a34] hover:text-[#C9D1D9]"
-            title="Export trip state"
+            title="导出行程状态"
           >
             <Download size={20} strokeWidth={1.6} />
           </button>
           <button
             type="button"
             className="flex w-full items-center justify-center px-3 py-3.5 text-[#8B949E] transition-colors hover:bg-[#1f2a34] hover:text-[#C9D1D9]"
-            title="Messages"
+            title="消息"
           >
             <MessageSquare size={20} strokeWidth={1.6} />
           </button>
           <button
             type="button"
             className="flex w-full items-center justify-center px-3 py-3.5 text-[#8B949E] transition-colors hover:bg-[#1f2a34] hover:text-[#C9D1D9]"
-            title="Settings"
+            title="设置"
           >
-            <Settings size={20} strokeWidth={1.6} />
+            <设置 size={20} strokeWidth={1.6} />
           </button>
         </div>
       </div>
@@ -898,17 +898,17 @@ function AppShell({
         <div className="flex h-12 items-center justify-between border-b border-[#30363D] bg-[#161b22] px-6">
           <div className="flex items-center gap-6">
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3FB950]">
-              UNCLASSIFIED // FAMILY OPS
+              指挥中心 // 家庭旅游
             </div>
             <div className="h-5 w-px bg-[#30363D]" />
             <div className="text-[10px] font-bold uppercase tracking-widest text-[#8B949E]">
-              {TRIP_META.commandName}
+              {TRIP_M预计到达.commandName}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8B949E]">
-                Working as
+                运行中
               </div>
               <div className="flex items-center gap-1.5">
                 {families.map((family) => (
@@ -940,7 +940,7 @@ function AppShell({
                 type="text"
                 value={doc.ui.searchQuery}
                 onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Search..."
+                placeholder="搜索..."
                 className="w-64 rounded-[2px] border border-[#30363D] bg-[#0d1117] py-1.5 pl-10 pr-4 text-[11px] outline-none focus:border-[#58A6FF]"
               />
               {doc.ui.searchQuery && searchResults.length ? (
@@ -1043,9 +1043,9 @@ function FamilyList({ doc, selection, onSelectEntity }) {
 
 function ScenarioControls({ doc, cursorSlot = doc.ui.timeline.cursorSlot, onSetCursor }) {
   const clampedCursor = clampTimelineCursor(cursorSlot)
-  const cursorDayIndex = Math.min(Math.max(Math.floor(clampedCursor / TIME_SLOTS.length), 0), DAYS.length - 1)
-  const selectedDay = DAYS[cursorDayIndex]
-  const cursorHour = getCursorHourInDay(clampedCursor)
+  const cursor天Index = Math.min(Math.max(Math.floor(clampedCursor / TIME_SLOTS.length), 0), DAYS.length - 1)
+  const selected天 = DAYS[cursor天Index]
+  const cursorHour = getCursorHourIn天(clampedCursor)
   const selectedHour = MISSION_TIME_PRESETS.reduce((bestHour, hour) => (
     Math.abs(hour - cursorHour) < Math.abs(bestHour - cursorHour) ? hour : bestHour
   ), MISSION_TIME_PRESETS[0])
@@ -1056,14 +1056,14 @@ function ScenarioControls({ doc, cursorSlot = doc.ui.timeline.cursorSlot, onSetC
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-[9px] font-black uppercase tracking-[0.18em] text-[#58A6FF]">
-            Scenario Mode
+            场景模式
           </div>
           <div className="mt-1 text-[12px] font-black uppercase tracking-[0.12em] text-[#C9D1D9]">
-            Time scrub
+            时间穿梭
           </div>
         </div>
         <div className="rounded-[2px] border border-[#30363D] bg-[#0d1117] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#8B949E]">
-          {selectedDay.shortLabel} {selectedSlotValue}
+          {selected天.shortLabel} {selectedSlotValue}
         </div>
       </div>
       <div className="mb-3 flex flex-wrap gap-2">
@@ -1074,7 +1074,7 @@ function ScenarioControls({ doc, cursorSlot = doc.ui.timeline.cursorSlot, onSetC
             onClick={() => onSetCursor(dayIndex * TIME_SLOTS.length + selectedHour / TIMELINE_HOURS_PER_SLOT)}
             className={cn(
               'border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider',
-              day.id === selectedDay.id
+              day.id === selected天.id
                 ? 'border-[#58A6FF] bg-[#58A6FF]/10 text-[#58A6FF]'
                 : 'border-[#30363D] bg-[#0d1117] text-[#8B949E]',
             )}
@@ -1090,7 +1090,7 @@ function ScenarioControls({ doc, cursorSlot = doc.ui.timeline.cursorSlot, onSetC
             <button
               key={slot}
               type="button"
-              onClick={() => onSetCursor(cursorDayIndex * TIME_SLOTS.length + hour / TIMELINE_HOURS_PER_SLOT)}
+              onClick={() => onSetCursor(cursor天Index * TIME_SLOTS.length + hour / TIMELINE_HOURS_PER_SLOT)}
               className={cn(
                 'flex-1 border px-2 py-2 text-[10px] font-mono',
                 slot === selectedSlotValue
@@ -1107,7 +1107,7 @@ function ScenarioControls({ doc, cursorSlot = doc.ui.timeline.cursorSlot, onSetC
   )
 }
 
-function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
+function Daily简报Modal({ briefing, onClose, onOpenEntity }) {
   if (!briefing) return null
 
   const toneStyles = {
@@ -1168,7 +1168,7 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <div className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-[#58A6FF]">
-                Daily Briefing
+                每日简报
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-[22px] font-black uppercase tracking-[0.14em] text-[#F0F6FC]">
@@ -1196,7 +1196,7 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
             </div>
             <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
               <div className="border border-[#30363D] bg-[#0d1117] p-4 text-center">
-                <div className="text-[8px] font-black uppercase tracking-widest text-[#8B949E]">Live now</div>
+                <div className="text-[8px] font-black uppercase tracking-widest text-[#8B949E]">当前</div>
                 <div className="mt-2 text-[22px] font-black text-[#F0F6FC]">{briefing.liveItems.length}</div>
               </div>
               <div className="border border-[#30363D] bg-[#0d1117] p-4 text-center">
@@ -1204,7 +1204,7 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
                 <div className="mt-2 text-[22px] font-black text-[#F0F6FC]">{briefing.soonItems.length}</div>
               </div>
               <div className="border border-[#30363D] bg-[#0d1117] p-4 text-center">
-                <div className="text-[8px] font-black uppercase tracking-widest text-[#8B949E]">Open tasks</div>
+                <div className="text-[8px] font-black uppercase tracking-widest text-[#8B949E]">开放任务</div>
                 <div className="mt-2 text-[22px] font-black text-[#F0F6FC]">{briefing.tasks.length}</div>
               </div>
             </div>
@@ -1214,7 +1214,7 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
         <div className="grid max-h-[calc(100vh-220px)] gap-5 overflow-y-auto p-6 xl:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-5">
             <div className="border border-[#30363D] bg-[#161b22] p-4">
-              <SectionTitle eyebrow="Watch For" title="What matters today" />
+              <SectionTitle eyebrow="重点关注" title="今日要点" />
               <div className="space-y-3">
                 {briefing.lookouts.map((item) => (
                   <div key={item} className="border border-[#30363D] bg-[#0d1117] px-3 py-3 text-[11px] leading-relaxed text-[#C9D1D9]">
@@ -1225,12 +1225,12 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
             </div>
 
             {railSection('Live surfaces', briefing.liveItems, 'Nothing is active yet for this day window.')}
-            {railSection('Coming up', briefing.soonItems, 'No immediate follow-ups are queued right now.')}
+            {railSection('即将进行', briefing.soonItems, 'No immediate follow-ups are queued right now.')}
           </div>
 
           <div className="space-y-5">
             <div className="border border-[#30363D] bg-[#161b22] p-4">
-              <SectionTitle eyebrow="Planned beats" title="Activities + meals" />
+              <SectionTitle eyebrow="计划活动" title="活动 + 餐饮" />
               <div className="space-y-3">
                 {briefing.activities.map((activity) => (
                   <button
@@ -1267,7 +1267,7 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
             </div>
 
             <div className="border border-[#30363D] bg-[#161b22] p-4">
-              <SectionTitle eyebrow="Open loops" title="Tasks to keep in mind" />
+              <SectionTitle eyebrow="待闭环" title="待办事项" />
               <div className="space-y-2">
                 {briefing.tasks.length ? briefing.tasks.map((task) => (
                   <button
@@ -1279,7 +1279,7 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
                     {task.title}
                   </button>
                 )) : (
-                  <div className="text-[11px] text-[#8B949E]">No open day-specific tasks. Good hunting.</div>
+                  <div className="text-[11px] text-[#8B949E]">今日无特殊任务。继续侦察。</div>
                 )}
               </div>
             </div>
@@ -1290,7 +1290,7 @@ function DailyBriefingModal({ briefing, onClose, onOpenEntity }) {
   )
 }
 
-function MissionLaunchModal({ doc, gate, remainingMs, onProceed, onAbort }) {
+function MissionLaunchModal({ doc, gate, remainingMs, on继续, on中止 }) {
   if (!gate) return null
 
   const context = buildOperationGateContext(doc, gate)
@@ -1305,7 +1305,7 @@ function MissionLaunchModal({ doc, gate, remainingMs, onProceed, onAbort }) {
   const theme = context.theme
   const statusCards = [
     { label: 'Launch', value: context.launchLabel, icon: Flag },
-    { label: 'ETA', value: context.etaLabel, icon: Route },
+    { label: '预计到达', value: context.etaLabel, icon: Route },
     { label: 'Units', value: `${context.unitCount}`, icon: Users },
   ]
 
@@ -1339,7 +1339,7 @@ function MissionLaunchModal({ doc, gate, remainingMs, onProceed, onAbort }) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: theme.accentText }}>
-                {context.dayMeta?.title || gate.dayLabel} Mission Launch
+                {context.dayMeta?.title || gate.dayLabel} 任务启动
               </div>
               <div className="mt-2 text-[12px] font-black uppercase tracking-[0.18em] text-[#8B949E]">
                 {context.code}
@@ -1431,18 +1431,18 @@ function MissionLaunchModal({ doc, gate, remainingMs, onProceed, onAbort }) {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={onAbort}
+                onClick={on中止}
                 className="border px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#F0F6FC] transition-colors hover:border-[#F0F6FC]/30 hover:bg-white/6"
                 style={{
                   borderColor: 'rgba(255,255,255,0.14)',
                   background: 'rgba(13,17,23,0.78)',
                 }}
               >
-                Abort
+                中止
               </button>
               <button
                 type="button"
-                onClick={onProceed}
+                onClick={on继续}
                 className="inline-flex items-center gap-2 border px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] transition-colors"
                 style={{
                   borderColor: theme.accentBorder,
@@ -1450,7 +1450,7 @@ function MissionLaunchModal({ doc, gate, remainingMs, onProceed, onAbort }) {
                   color: theme.accentStrong,
                 }}
               >
-                Proceed Now
+                继续 Now
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -1522,17 +1522,17 @@ function MissionFeedTray({ items, onActivateItem }) {
   )
 }
 
-function SituationBoard({ context, onOpenEntity, onOpenBriefing }) {
+function SituationBoard({ context, onOpenEntity, onOpen简报 }) {
   const sections = [
-    { title: 'Live now', items: context.liveEntities, emptyLabel: 'Nothing active in this window.' },
-    { title: 'Coming up', items: [...context.nextEntities, ...context.prepSoon].slice(0, 4), emptyLabel: 'No immediate follow-ups.' },
+    { title: '当前', items: context.liveEntities, emptyLabel: '此时间段无活动。' },
+    { title: '即将进行', items: [...context.nextEntities, ...context.prepSoon].slice(0, 4), emptyLabel: '暂无待办事项。' },
   ]
 
   return (
     <div className="border border-[#30363D] bg-[#161b22]">
       <div className="border-b border-[#30363D] bg-[#1f2a34]/30 p-5">
         <div className="mb-2 text-[9px] font-black uppercase tracking-[0.22em] text-[#58A6FF]">
-          Current situation
+          当前态势
         </div>
         <div className="text-[18px] font-black text-[#F0F6FC]">{context.cursorLabel}</div>
         <div className="mt-1 text-[11px] text-[#8B949E]">
@@ -1554,10 +1554,10 @@ function SituationBoard({ context, onOpenEntity, onOpenBriefing }) {
         </div>
         <button
           type="button"
-          onClick={onOpenBriefing}
+          onClick={onOpen简报}
           className="mt-4 flex w-full items-center justify-center border border-[#58A6FF]/30 bg-[#58A6FF]/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.22em] text-[#58A6FF] transition-colors hover:border-[#58A6FF] hover:bg-[#58A6FF]/14"
         >
-          Daily briefing
+          每日简报
         </button>
       </div>
 
@@ -1599,7 +1599,7 @@ function TimelineBoard({
   selection,
   onSelectEntity,
   onSetCursor,
-  weatherDays,
+  weather天s,
   cursorSlot = doc.ui.timeline.cursorSlot,
   isPlaying = false,
   playbackSpeed = 1,
@@ -1607,9 +1607,9 @@ function TimelineBoard({
   onRestartPlayback,
   onSetPlaybackSpeed,
 }) {
-  const days = weatherDays?.length ? weatherDays : DAYS
+  const days = weather天s?.length ? weather天s : DAYS
   const totalVisibleSlots = days.length * VISIBLE_TIMELINE_SLOT_SPAN
-  const visibleHoursPerDay = VISIBLE_TIMELINE_END_HOUR - VISIBLE_TIMELINE_START_HOUR
+  const visibleHoursPer天 = VISIBLE_TIMELINE_END_HOUR - VISIBLE_TIMELINE_START_HOUR
   const timelineRef = useRef(null)
   const draggingRef = useRef(false)
   const [liveNow, setLiveNow] = useState(() => new Date())
@@ -1620,9 +1620,9 @@ function TimelineBoard({
     support: 44,
   }
   const rows = [
-    { id: 'travel', label: 'Transit' },
-    { id: 'activities', label: 'Main Ops' },
-    { id: 'support', label: 'Support' },
+    { id: 'travel', label: '赶路中' },
+    { id: 'activities', label: '主要活动' },
+    { id: 'support', label: '后勤' },
   ]
   const rowLayouts = rows.map((row, index) => ({
     ...row,
@@ -1641,7 +1641,7 @@ function TimelineBoard({
     return () => window.clearInterval(timerId)
   }, [])
 
-  const scrubToClientX = useCallback((clientX) => {
+  const 穿梭ToClientX = useCallback((clientX) => {
     if (!timelineRef.current) return null
     const bounds = timelineRef.current.getBoundingClientRect()
     const ratio = Math.min(Math.max((clientX - bounds.left) / bounds.width, 0), 0.999999)
@@ -1666,7 +1666,7 @@ function TimelineBoard({
               type="button"
               onClick={onTogglePlayback}
               className="inline-flex h-7 w-7 items-center justify-center border border-[#58A6FF]/40 bg-[#58A6FF]/10 text-[#58A6FF] transition-colors hover:border-[#58A6FF]"
-              title={isPlaying ? 'Pause playback' : 'Play playback'}
+              title={isPlaying ? '暂停时间轴' : '播放时间轴'}
             >
               {isPlaying ? <Pause size={13} /> : <Play size={13} className="translate-x-[1px]" />}
             </button>
@@ -1674,7 +1674,7 @@ function TimelineBoard({
               type="button"
               onClick={onRestartPlayback}
               className="inline-flex h-7 w-7 items-center justify-center border border-[#30363D] bg-[#0d1117] text-[#8B949E] transition-colors hover:border-[#58A6FF]/40 hover:text-[#C9D1D9]"
-              title="Restart playback from trip start"
+              title="从头重播"
             >
               <RotateCcw size={13} />
             </button>
@@ -1737,14 +1737,14 @@ function TimelineBoard({
           }}
           onMouseDown={(event) => {
             draggingRef.current = true
-            const nextCursorSlot = scrubToClientX(event.clientX)
+            const nextCursorSlot = 穿梭ToClientX(event.clientX)
             if (nextCursorSlot != null) {
               setHoverCursorSlot(nextCursorSlot)
               onSetCursor?.(nextCursorSlot)
             }
           }}
           onMouseMove={(event) => {
-            const nextCursorSlot = scrubToClientX(event.clientX)
+            const nextCursorSlot = 穿梭ToClientX(event.clientX)
             if (nextCursorSlot == null) return
             setHoverCursorSlot(nextCursorSlot)
             if (draggingRef.current) {
@@ -1752,15 +1752,15 @@ function TimelineBoard({
             }
           }}
           onClick={(event) => {
-            const nextCursorSlot = scrubToClientX(event.clientX)
+            const nextCursorSlot = 穿梭ToClientX(event.clientX)
             if (nextCursorSlot != null) {
               onSetCursor?.(nextCursorSlot)
             }
           }}
         >
           <div className="absolute inset-0">
-            {Array.from({ length: days.length * visibleHoursPerDay + 1 }).map((_, index) => {
-              const hour = index % visibleHoursPerDay
+            {Array.from({ length: days.length * visibleHoursPer天 + 1 }).map((_, index) => {
+              const hour = index % visibleHoursPer天
               const actualHour = VISIBLE_TIMELINE_START_HOUR + hour
               const isMajor = hour % TIMELINE_HOURS_PER_SLOT === 0
               return (
@@ -1770,7 +1770,7 @@ function TimelineBoard({
                     'absolute bottom-0 top-0',
                     isMajor ? 'border-l border-[#30363D]/32' : 'border-l border-[#30363D]/10',
                   )}
-                  style={{ left: `${(index / (days.length * visibleHoursPerDay)) * 100}%` }}
+                  style={{ left: `${(index / (days.length * visibleHoursPer天)) * 100}%` }}
                   data-hour={actualHour}
                 />
               )
@@ -1802,8 +1802,8 @@ function TimelineBoard({
                   {rowItems.map((item) => {
                     const itemSpan = getItineraryItemEffectiveSpan(doc, item)
                     const itemEnd = item.startSlot + itemSpan
-                    const itemDayIndex = Math.min(Math.max(Math.floor(item.startSlot / TIME_SLOTS.length), 0), days.length - 1)
-                    const visibleRange = getDayVisibleCursorRange(itemDayIndex)
+                    const item天Index = Math.min(Math.max(Math.floor(item.startSlot / TIME_SLOTS.length), 0), days.length - 1)
+                    const visibleRange = get天VisibleCursorRange(item天Index)
                     const clippedStart = Math.max(item.startSlot, visibleRange.start)
                     const clippedEnd = Math.min(itemEnd, visibleRange.end)
                     if (clippedEnd <= clippedStart) return null
@@ -1917,7 +1917,7 @@ function TimelineBoard({
       <div className="flex h-10 border-t border-[#30363D] bg-[#0d1117]">
         <div className="flex w-28 items-center justify-center border-r border-[#30363D] px-2">
           <div className="text-center text-[9px] font-black uppercase tracking-[0.16em] text-[#8B949E]">
-            mission scrub
+            mission 穿梭
           </div>
         </div>
         <div className="flex flex-1 divide-x divide-[#30363D]/50">
@@ -1927,7 +1927,7 @@ function TimelineBoard({
                 {day.shortLabel}
               </div>
               <div className="flex h-full">
-                {Array.from({ length: visibleHoursPerDay }).map((_, hourOffset) => {
+                {Array.from({ length: visibleHoursPer天 }).map((_, hourOffset) => {
                   const hour = VISIBLE_TIMELINE_START_HOUR + hourOffset
                   const hourCursor = clampTimelineCursor(dayIndex * TIME_SLOTS.length + hour / TIMELINE_HOURS_PER_SLOT)
                   const showLabel = (hour - VISIBLE_TIMELINE_START_HOUR) % 3 === 0
@@ -2047,7 +2047,7 @@ const ACTIVITY_RESEARCH = {
         ],
       },
       {
-        eyebrow: 'Transit Focus',
+        eyebrow: '赶路 Focus',
         title: 'Each family runs a different inbound playbook',
         bullets: [
           'Parkers have the long LA haul, so road-trip stops and dinner timing matter most there.',
@@ -2087,13 +2087,13 @@ const ACTIVITY_RESEARCH = {
         eyebrow: 'Best Easy Stops',
         title: 'Family-friendly Yosemite Valley flow',
         bullets: [
-          'Lower Yosemite Fall is one of the easiest iconic walks in the valley and works well for a first major stop.',
+          '低er Yosemite Fall is one of the easiest iconic walks in the valley and works well for a first major stop.',
           "Cook's Meadow is flat, scenic, and a good low-effort way to get valley views without overcommitting.",
           'Swinging Bridge is useful as a picnic / water / reset stop if kid energy needs a break.',
         ],
       },
       {
-        eyebrow: 'Operational Notes',
+        eyebrow: 'Operational 备注s',
         title: 'Keep the mission flexible',
         bullets: [
           'Tunnel View is the easiest headline photo stop if timing or walking tolerance tightens up.',
@@ -2140,7 +2140,7 @@ const JIANG_ROAD_TRIP_STOP_DEFAULTS = [
     address: '19950 Bernard Dr, Kettleman City, CA 93239',
     coordinates: { lat: 35.9934, lng: -119.9617 },
     externalUrl: 'https://www.google.com/maps/search/?api=1&query=Bravo+Farms+Kettleman+City',
-    summary: 'Good halfway lunch + restroom + leg-stretch stop on the LA inbound drive.',
+    summary: '启动od halfway lunch + restroom + leg-stretch stop on the LA inbound 行驶.',
     linkedEntityKeys: [makeEntityKey('family', 'north-star'), makeEntityKey('itineraryItem', 'north-star-drive')],
     photos: [],
     note: '',
@@ -2156,7 +2156,7 @@ const JIANG_ROAD_TRIP_STOP_DEFAULTS = [
     address: '10040 CA-120, Oakdale, CA 95361',
     coordinates: { lat: 37.7975, lng: -120.8108 },
     externalUrl: 'https://www.google.com/maps/search/?api=1&query=Oakdale+Cheese+%26+Specialties',
-    summary: 'Final reset stop before the mountain leg. Good for snacks, bathrooms, and a quick stretch.',
+    summary: 'Final reset stop before the mountain leg. 启动od for snacks, bathrooms, and a quick stretch.',
     linkedEntityKeys: [makeEntityKey('family', 'north-star'), makeEntityKey('itineraryItem', 'north-star-drive')],
     photos: [],
     note: '',
@@ -2194,7 +2194,7 @@ const YOSEMITE_ROUTE_DEFAULTS = {
   coordinates: { lat: 37.8108, lng: -119.8744 },
   externalUrl: 'https://www.google.com/maps/search/?api=1&query=Big+Oak+Flat+Entrance+Yosemite',
   summary:
-    'Primary Saturday route anchor. Using the west entrance keeps park access, traffic watch, and drive planning grounded in a real checkpoint.',
+    'Primary Saturday route anchor. Using the west entrance keeps park access, traffic watch, and 行驶 planning grounded in a real checkpoint.',
 }
 
 const ROUTE_SIM_DEFAULTS = {
@@ -2258,7 +2258,7 @@ function ActivityResearchCard({ eyebrow, title, bullets }) {
   )
 }
 
-function TransitStopCard({ stop, onSelectEntity }) {
+function 赶路StopCard({ stop, onSelectEntity }) {
   return (
     <button
       type="button"
@@ -2283,13 +2283,13 @@ function ItineraryPage({
   onSetCursor,
   onUpdateMapUi,
   onHydrateRouteDetails,
-  onUpdatePageNote,
-  onConvertPageNote,
-  weatherDays,
+  onUpdatePage备注,
+  onConvertPage备注,
+  weather天s,
   mapWeather,
   mapWeatherTargets,
 }) {
-  const [briefingOpen, setBriefingOpen] = useState(false)
+  const [briefingOpen, set简报Open] = useState(false)
   const [playbackCursorSlot, setPlaybackCursorSlot] = useState(null)
   const [isPlaybackPlaying, setIsPlaybackPlaying] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
@@ -2303,10 +2303,10 @@ function ItineraryPage({
   const triggeredOperationCheckpointIdsRef = useRef(new Set())
   const effectiveCursorSlot = playbackCursorSlot ?? doc.ui.timeline.cursorSlot
   const context = useMemo(() => getTimelineContext(doc, effectiveCursorSlot), [doc, effectiveCursorSlot])
-  const dailyBriefing = useMemo(() => buildDailyBriefing(doc, context), [doc, context])
+  const daily简报 = useMemo(() => buildDaily简报(doc, context), [doc, context])
   const operationCheckpoints = useMemo(() => buildOperationCheckpoints(doc), [doc])
-  const playbackHighlightLocationId = useMemo(
-    () => (isPlaybackPlaying ? getPlaybackHighlightLocation(doc, context) : null),
+  const playback高lightLocationId = useMemo(
+    () => (isPlaybackPlaying ? getPlayback高lightLocation(doc, context) : null),
     [context, doc, isPlaybackPlaying],
   )
   const renderedMissionFeedItems = useMemo(() => {
@@ -2454,15 +2454,15 @@ function ItineraryPage({
   useEffect(() => {
     if (!briefingOpen) return undefined
 
-    console.info('[TripCommand] Daily briefing opened', {
+    console.info('[TripCommand] 每日简报 opened', {
       cursorSlot: effectiveCursorSlot,
-      day: dailyBriefing?.day?.id,
+      day: daily简报?.day?.id,
     })
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
-        console.info('[TripCommand] Daily briefing closed via Escape')
-        setBriefingOpen(false)
+        console.info('[TripCommand] 每日简报 closed via Escape')
+        set简报Open(false)
       }
     }
 
@@ -2613,34 +2613,34 @@ function ItineraryPage({
     onSetCursor(restartCursor)
   }, [clearMissionFeed, isPlaybackPlaying, onSetCursor])
 
-  const handleOpenBriefing = useCallback(() => {
-    console.info('[TripCommand] Daily briefing button clicked', {
+  const handleOpen简报 = useCallback(() => {
+    console.info('[TripCommand] 每日简报 button clicked', {
       cursorSlot: effectiveCursorSlot,
-      day: dailyBriefing?.day?.id,
+      day: daily简报?.day?.id,
     })
-    setBriefingOpen(true)
-  }, [dailyBriefing?.day?.id, effectiveCursorSlot])
+    set简报Open(true)
+  }, [daily简报?.day?.id, effectiveCursorSlot])
 
   return (
     <>
       <div className="grid h-full min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] overflow-hidden">
         <div className="min-h-0 overflow-y-auto border-r border-[#30363D] bg-[#0d1117]">
           <div className="space-y-4 p-4">
-            <SituationBoard context={context} onOpenEntity={onOpenEntity} onOpenBriefing={handleOpenBriefing} />
+            <SituationBoard context={context} onOpenEntity={onOpenEntity} onOpen简报={handleOpen简报} />
             <div>
-              <SectionTitle eyebrow="Response Plans" title="Travel units" meta={`${doc.families.length} families`} />
+              <SectionTitle eyebrow="Response Plans" title="出行单位" meta={`${doc.families.length} families`} />
               <FamilyList doc={doc} selection={selection} onSelectEntity={onSelectEntity} />
             </div>
             <div>
               <ScenarioControls doc={doc} cursorSlot={effectiveCursorSlot} onSetCursor={handleTimelineCursorChange} />
             </div>
             <div>
-              <PageNotesCard
-                title="Planner note"
-                value={getPageNote(doc, 'itinerary')}
-                onChange={(value) => onUpdatePageNote('itinerary', value)}
-                onConvert={() => onConvertPageNote('itinerary')}
-                placeholder="Add a planning note..."
+              <Page备注sCard
+                title="规划笔记"
+                value={getPage备注(doc, 'itinerary')}
+                onChange={(value) => onUpdatePage备注('itinerary', value)}
+                onConvert={() => onConvertPage备注('itinerary')}
+                placeholder="添加规划笔记..."
               />
             </div>
           </div>
@@ -2662,7 +2662,7 @@ function ItineraryPage({
               selectedLocationId={getLocationForEntity(doc, getEntityBySelection(doc, selection))?.id || null}
               selectedRouteId={getRouteForEntity(doc, getEntityBySelection(doc, selection))?.id || null}
               playbackActive={isPlaybackPlaying}
-              playbackHighlightLocationId={playbackHighlightLocationId}
+              playback高lightLocationId={playback高lightLocationId}
               onUpdateMapUi={onUpdateMapUi}
               onHydrateRouteDetails={onHydrateRouteDetails}
               onSelectEntity={onSelectEntity}
@@ -2679,7 +2679,7 @@ function ItineraryPage({
               selection={selection}
               onSelectEntity={onSelectEntity}
               onSetCursor={handleTimelineCursorChange}
-              weatherDays={weatherDays}
+              weather天s={weather天s}
               cursorSlot={effectiveCursorSlot}
               isPlaying={isPlaybackPlaying}
               playbackSpeed={playbackSpeed}
@@ -2691,12 +2691,12 @@ function ItineraryPage({
         </div>
       </div>
       {briefingOpen ? (
-        <DailyBriefingModal
-          briefing={dailyBriefing}
-          onClose={() => setBriefingOpen(false)}
+        <Daily简报Modal
+          briefing={daily简报}
+          onClose={() => set简报Open(false)}
           onOpenEntity={(type, id) => {
             onOpenEntity(type, id)
-            setBriefingOpen(false)
+            set简报Open(false)
           }}
         />
       ) : null}
@@ -2705,24 +2705,24 @@ function ItineraryPage({
           doc={doc}
           gate={operationGate}
           remainingMs={operationGateRemainingMs}
-          onProceed={proceedOperationGate}
-          onAbort={abortOperationGate}
+          on继续={proceedOperationGate}
+          on中止={abortOperationGate}
         />
       ) : null}
     </>
   )
 }
 
-function StayPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertPageNote }) {
+function 住宿Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConvertPage备注 }) {
   const airbnb = getEntityById(doc, 'location', 'pine-airbnb')
   const showExternalListing = Boolean(airbnb?.externalUrl)
   const showManual = Boolean(airbnb?.manualUrl)
-  const isSanitizedStay = !showExternalListing && !showManual
+  const isSanitized住宿 = !showExternalListing && !showManual
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[minmax(380px,440px)_1fr] overflow-hidden">
       <div className="overflow-y-auto border-r border-[#30363D] bg-[#161b22] p-6">
-        <SectionTitle eyebrow="Basecamp" title={airbnb?.title || 'Basecamp'} meta={TRIP_META.subtitle} />
+        <SectionTitle eyebrow="Basecamp" title={airbnb?.title || 'Basecamp'} meta={TRIP_M预计到达.subtitle} />
         <SelectableCard
           selected={selection.type === 'location' && selection.id === airbnb.id}
           onClick={() => onSelectEntity('location', airbnb.id)}
@@ -2762,11 +2762,11 @@ function StayPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertP
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="border border-[#30363D] bg-[#0d1117] p-3">
-                <div className="text-[9px] font-black uppercase tracking-widest text-[#8B949E]">Check-in</div>
+                <div className="text-[9px] font-black uppercase tracking-widest text-[#8B949E]">入住</div>
                 <div className="mt-1 text-[12px] font-bold text-[#C9D1D9]">{airbnb.checkIn}</div>
               </div>
               <div className="border border-[#30363D] bg-[#0d1117] p-3">
-                <div className="text-[9px] font-black uppercase tracking-widest text-[#8B949E]">Check-out</div>
+                <div className="text-[9px] font-black uppercase tracking-widest text-[#8B949E]">退房</div>
                 <div className="mt-1 text-[12px] font-bold text-[#C9D1D9]">{airbnb.checkOut}</div>
               </div>
               {airbnb.wifiNetwork || airbnb.wifiPassword ? (
@@ -2776,10 +2776,10 @@ function StayPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertP
                   <div className="mt-1 text-[10px] text-[#8B949E]">{airbnb.wifiPassword}</div>
                 </div>
               ) : null}
-              {airbnb.lockNote ? (
+              {airbnb.lock备注 ? (
                 <div className="border border-[#30363D] bg-[#0d1117] p-3">
                   <div className="text-[9px] font-black uppercase tracking-widest text-[#8B949E]">Access</div>
-                  <div className="mt-1 text-[12px] font-bold text-[#C9D1D9]">{airbnb.lockNote}</div>
+                  <div className="mt-1 text-[12px] font-bold text-[#C9D1D9]">{airbnb.lock备注}</div>
                 </div>
               ) : null}
               {airbnb.hostName || airbnb.coHostName || airbnb.guestSummary ? (
@@ -2794,11 +2794,11 @@ function StayPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertP
               ) : null}
               <div className="border border-[#30363D] bg-[#0d1117] p-3">
                 <div className="text-[9px] font-black uppercase tracking-widest text-[#8B949E]">
-                  {isSanitizedStay ? 'Sanitized demo mode' : 'Gate fee'}
+                  {isSanitized住宿 ? 'Sanitized demo mode' : 'Gate fee'}
                 </div>
                 <div className="mt-1 text-[12px] font-bold text-[#C9D1D9]">{airbnb.vehicleFee}</div>
                 <div className="mt-1 text-[10px] text-[#8B949E]">
-                  {isSanitizedStay ? 'Operational access details are intentionally withheld.' : 'Per vehicle at Pine Mountain Dr entrance'}
+                  {isSanitized住宿 ? 'Operational access details are intentionally withheld.' : 'Per vehicle at Pine Mountain Dr entrance'}
                 </div>
               </div>
             </div>
@@ -2806,15 +2806,15 @@ function StayPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertP
             <div className="mt-4 space-y-3 border-t border-[#30363D]/50 pt-4 text-[11px] leading-relaxed text-[#8B949E]">
               <div>
                 <div className="mb-1 text-[9px] font-black uppercase tracking-widest text-[#58A6FF]">Arrival route</div>
-                <div>{airbnb.directionsNote}</div>
+                <div>{airbnb.directions备注}</div>
               </div>
               <div>
                 <div className="mb-1 text-[9px] font-black uppercase tracking-widest text-[#58A6FF]">Gate + access</div>
-                <div>{airbnb.accessNote}</div>
+                <div>{airbnb.access备注}</div>
               </div>
               <div>
                 <div className="mb-1 text-[9px] font-black uppercase tracking-widest text-[#58A6FF]">Parking + Friday ops</div>
-                <div>{airbnb.parkingNote}</div>
+                <div>{airbnb.parking备注}</div>
               </div>
               {airbnb.confirmationCode ? (
                 <div>
@@ -2899,11 +2899,11 @@ function StayPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertP
             </SelectableCard>
           ))}
         </div>
-        <PageNotesCard
-          title="Stay note"
-          value={getPageNote(doc, 'stay')}
-          onChange={(value) => onUpdatePageNote('stay', value)}
-          onConvert={() => onConvertPageNote('stay')}
+        <Page备注sCard
+          title="住宿 note"
+          value={getPage备注(doc, 'stay')}
+          onChange={(value) => onUpdatePage备注('stay', value)}
+          onConvert={() => onConvertPage备注('stay')}
           placeholder="Record gate instructions, sleeping concerns, quiet hours, or house logistics..."
         />
       </div>
@@ -2911,7 +2911,7 @@ function StayPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertP
   )
 }
 
-function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdatePageNote, onConvertPageNote }) {
+function 餐饮Page({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdatePage备注, onConvertPage备注 }) {
   const selectedMeal = selection.type === 'meal'
     ? getEntityById(doc, 'meal', selection.id) || doc.meals[0]
     : doc.meals[0]
@@ -2924,7 +2924,7 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
   const travelSummary = selectedLocation?.basecampDrive
     ? `${selectedLocation.basecampDrive.durationText} · ${selectedLocation.basecampDrive.distanceText}`
     : selectedLocation?.id === 'pine-airbnb'
-      ? 'No drive required'
+      ? 'No 行驶 required'
       : 'Directions-driven travel estimate will populate after route intel syncs.'
   const hoursPreview = selectedLocation?.openingHours?.slice(0, 3).join(' | ')
   const ratingSummary = selectedLocation?.rating
@@ -2934,7 +2934,7 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[minmax(360px,0.78fr)_minmax(520px,1.22fr)] overflow-hidden">
       <div className="overflow-y-auto border-r border-[#30363D] bg-[#161b22] p-6">
-        <SectionTitle eyebrow="Meal Logistics" title="Shared feeding plan" meta="Ownership + prep + kid friendliness" />
+        <SectionTitle eyebrow="Meal Logistics" title="Shared feeding plan" meta="负责ship + prep + kid friendliness" />
         <div className="space-y-3">
           {doc.meals.map((meal) => (
             <div
@@ -2953,7 +2953,7 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
                 className="grid min-w-0 grid-cols-[86px_1fr_120px] gap-3 text-left"
               >
                 <div>
-                  <div className="font-bold text-[#8B949E]">{getDayMeta(meal.dayId)?.shortLabel || meal.dayId}</div>
+                  <div className="font-bold text-[#8B949E]">{get天Meta(meal.dayId)?.shortLabel || meal.dayId}</div>
                   <div className="mt-1 text-[12px] font-black text-[#C9D1D9]">{meal.timeLabel}</div>
                 </div>
                 <div className="min-w-0">
@@ -2999,7 +2999,7 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
                     {selectedMeal.title}
                   </h2>
                   <div className="mt-2 text-[11px] text-[#8B949E]">
-                    {getDayMeta(selectedMeal.dayId)?.title} at {selectedMeal.timeLabel} · {selectedMeal.reservationType}
+                    {get天Meta(selectedMeal.dayId)?.title} at {selectedMeal.timeLabel} · {selectedMeal.reservationType}
                   </div>
                 </div>
                 <StatusPill tone={selectedMeal.status}>{selectedMeal.status}</StatusPill>
@@ -3009,7 +3009,7 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
                 {selectedLocation?.externalUrl ? (
                   <IntelAction
                     icon={MapPin}
-                    label="Open in Google Maps"
+                    label="Open in 启动ogle Maps"
                     onClick={() => window.open(selectedLocation.externalUrl, '_blank', 'noreferrer')}
                   />
                 ) : null}
@@ -3036,7 +3036,7 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
                   <div className="space-y-3">
                     <InfoRow icon={MapPin} label="Location" value={selectedLocation?.address || 'Waiting for place resolution'} />
                     <InfoRow icon={Phone} label="Phone" value={selectedLocation?.phoneNumber} />
-                    <InfoRow icon={Star} label="Reservation note" value={selectedLocation?.reservationNote || selectedMeal.note} muted />
+                    <InfoRow icon={Star} label="Reservation note" value={selectedLocation?.reservation备注 || selectedMeal.note} muted />
                     <InfoRow
                       icon={ExternalLink}
                       label="Hours"
@@ -3109,11 +3109,11 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
             ) : null}
 
             <div className="mt-5">
-              <PageNotesCard
+              <Page备注sCard
                 title="Feeding note"
-                value={getPageNote(doc, 'meals')}
-                onChange={(value) => onUpdatePageNote('meals', value)}
-                onConvert={() => onConvertPageNote('meals')}
+                value={getPage备注(doc, 'meals')}
+                onChange={(value) => onUpdatePage备注('meals', value)}
+                onConvert={() => onConvertPage备注('meals')}
                 placeholder="Capture grocery strategy, allergy notes, kid fallback meals, or timing calls for restaurant stops..."
               />
             </div>
@@ -3124,7 +3124,7 @@ function MealsPage({ doc, selection, onSelectEntity, onToggleMealStatus, onUpdat
   )
 }
 
-function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertPageNote, onAddActivity }) {
+function 活动Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConvertPage备注, onAddActivity }) {
   const selectedActivity = useMemo(
     () => (selection.type === 'activity' ? doc.activities.find((activity) => activity.id === selection.id) || doc.activities[0] : doc.activities[0]),
     [doc.activities, selection],
@@ -3136,7 +3136,7 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
     [linkedEntities],
   )
   const research = selectedActivity ? ACTIVITY_RESEARCH[selectedActivity.id] : null
-  const transitFamilies = useMemo(() => {
+  const transit家庭 = useMemo(() => {
     if (!selectedActivity || selectedActivity.id !== 'thu-transit') return []
 
     return linkedTimelineItems
@@ -3159,30 +3159,30 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
       })
       .filter(Boolean)
   }, [doc, linkedTimelineItems, selectedActivity])
-  const [selectedTransitFamilyId, setSelectedTransitFamilyId] = useState(null)
+  const [selected赶路FamilyId, setSelected赶路FamilyId] = useState(null)
   useEffect(() => {
-    if (!transitFamilies.length) {
-      setSelectedTransitFamilyId(null)
+    if (!transit家庭.length) {
+      setSelected赶路FamilyId(null)
       return
     }
 
-    if (!transitFamilies.some((entry) => entry.family.id === selectedTransitFamilyId)) {
-      setSelectedTransitFamilyId(transitFamilies[0].family.id)
+    if (!transit家庭.some((entry) => entry.family.id === selected赶路FamilyId)) {
+      setSelected赶路FamilyId(transit家庭[0].family.id)
     }
-  }, [selectedTransitFamilyId, transitFamilies])
-  const selectedTransitPlan = useMemo(
-    () => transitFamilies.find((entry) => entry.family.id === selectedTransitFamilyId) || transitFamilies[0] || null,
-    [selectedTransitFamilyId, transitFamilies],
+  }, [selected赶路FamilyId, transit家庭])
+  const selected赶路Plan = useMemo(
+    () => transit家庭.find((entry) => entry.family.id === selected赶路FamilyId) || transit家庭[0] || null,
+    [selected赶路FamilyId, transit家庭],
   )
   const [draftTitle, setDraftTitle] = useState('')
-  const [draftDayId, setDraftDayId] = useState('fri')
-  const [draftWindow, setDraftWindow] = useState('Fri / flexible')
+  const [draft天Id, setDraft天Id] = useState('fri')
+  const [draft时间窗口, setDraft时间窗口] = useState('Fri / flexible')
   const [draftDescription, setDraftDescription] = useState('')
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[360px_minmax(560px,1fr)] overflow-hidden">
       <div className="overflow-y-auto border-r border-[#30363D] bg-[#161b22] p-6">
-        <SectionTitle eyebrow="Activity Board" title="Day missions" meta={`${doc.activities.length} tracked`} />
+        <SectionTitle eyebrow="Activity Board" title="天 missions" meta={`${doc.activities.length} tracked`} />
         <div className="space-y-4">
           {doc.activities.map((activity) => (
             <SelectableCard
@@ -3216,8 +3216,8 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
             />
             <div className="grid grid-cols-[110px_1fr] gap-2">
               <select
-                value={draftDayId}
-                onChange={(event) => setDraftDayId(event.target.value)}
+                value={draft天Id}
+                onChange={(event) => setDraft天Id(event.target.value)}
                 className="border border-[#30363D] bg-[#161b22] px-3 py-2 text-[11px] text-[#C9D1D9] outline-none focus:border-[#58A6FF]"
               >
                 {DAYS.map((day) => (
@@ -3227,13 +3227,13 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
                 ))}
               </select>
               <input
-                value={draftWindow}
-                onChange={(event) => setDraftWindow(event.target.value)}
-                placeholder="Window label"
+                value={draft时间窗口}
+                onChange={(event) => setDraft时间窗口(event.target.value)}
+                placeholder="时间窗口 label"
                 className="w-full border border-[#30363D] bg-[#161b22] px-3 py-2 text-[11px] text-[#C9D1D9] outline-none focus:border-[#58A6FF]"
               />
             </div>
-            <NotesBox
+            <备注sBox
               value={draftDescription}
               onChange={setDraftDescription}
               placeholder="Short description or planning purpose..."
@@ -3244,8 +3244,8 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
                 if (!draftTitle.trim()) return
                 onAddActivity({
                   title: draftTitle.trim(),
-                  dayId: draftDayId,
-                  window: draftWindow.trim(),
+                  dayId: draft天Id,
+                  window: draft时间窗口.trim(),
                   description: draftDescription.trim(),
                 })
                 setDraftTitle('')
@@ -3272,7 +3272,7 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
                     {selectedActivity.title}
                   </h2>
                   <div className="mt-2 text-[11px] text-[#8B949E]">
-                    {getDayMeta(selectedActivity.dayId)?.title || selectedActivity.dayId} · {selectedActivity.window}
+                    {get天Meta(selectedActivity.dayId)?.title || selectedActivity.dayId} · {selectedActivity.window}
                   </div>
                 </div>
                 <StatusPill tone={selectedActivity.status}>{selectedActivity.status}</StatusPill>
@@ -3302,26 +3302,26 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
                   <InfoRow icon={ArrowRight} label="Core plan" value={selectedActivity.description} />
                   <InfoRow icon={MapPin} label="Anchor location" value={selectedLocation?.title || 'No anchor location set'} />
                   <InfoRow icon={Search} label="Research read" value={research?.headline || selectedActivity.note || 'Build the mission details for this day.'} muted />
-                  <InfoRow icon={Settings} label="Fallback" value={selectedActivity.backup} muted />
+                  <InfoRow icon={设置} label="Fallback" value={selectedActivity.backup} muted />
                 </div>
               </div>
             </div>
 
-            {selectedActivity.id === 'thu-transit' && selectedTransitPlan ? (
+            {selectedActivity.id === 'thu-transit' && selected赶路Plan ? (
               <div className="mt-5 border border-[#30363D] bg-[#161b22] p-5">
-                <SectionTitle eyebrow="Transit Planning" title="Family road trips" meta={`${transitFamilies.length} active routes`} />
+                <SectionTitle eyebrow="赶路 Planning" title="Family road trips" meta={`${transit家庭.length} active routes`} />
                 <div className="mb-4 flex flex-wrap gap-2">
-                  {transitFamilies.map((entry) => (
+                  {transit家庭.map((entry) => (
                     <button
                       key={entry.family.id}
                       type="button"
                       onClick={() => {
-                        setSelectedTransitFamilyId(entry.family.id)
+                        setSelected赶路FamilyId(entry.family.id)
                         onSelectEntity('family', entry.family.id)
                       }}
                       className={cn(
                         'border px-3 py-2 text-[10px] font-black uppercase tracking-wider',
-                        selectedTransitPlan.family.id === entry.family.id
+                        selected赶路Plan.family.id === entry.family.id
                           ? 'border-[#58A6FF] bg-[#58A6FF]/10 text-[#58A6FF]'
                           : 'border-[#30363D] bg-[#0d1117] text-[#C9D1D9]',
                       )}
@@ -3332,32 +3332,32 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
                 </div>
                 <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
                   <div className="border border-[#30363D] bg-[#0d1117] p-4">
-                    <SectionTitle eyebrow="Selected Family" title={selectedTransitPlan.family.title} meta={selectedTransitPlan.family.eta} />
+                    <SectionTitle eyebrow="Selected Family" title={selected赶路Plan.family.title} meta={selected赶路Plan.family.eta} />
                     <div className="space-y-3">
-                      <InfoRow icon={MapPin} label="Origin" value={selectedTransitPlan.family.origin} />
-                      <InfoRow icon={Route} label="Route read" value={selectedTransitPlan.family.routeSummary} muted />
-                      <InfoRow icon={Users} label="Vehicle / group" value={`${selectedTransitPlan.family.vehicle} · ${selectedTransitPlan.family.headcount}`} />
+                      <InfoRow icon={MapPin} label="Origin" value={selected赶路Plan.family.origin} />
+                      <InfoRow icon={Route} label="Route read" value={selected赶路Plan.family.routeSummary} muted />
+                      <InfoRow icon={Users} label="Vehicle / group" value={`${selected赶路Plan.family.vehicle} · ${selected赶路Plan.family.headcount}`} />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <IntelAction
                         icon={Users}
                         label="Inspect family"
-                        onClick={() => onSelectEntity('family', selectedTransitPlan.family.id)}
+                        onClick={() => onSelectEntity('family', selected赶路Plan.family.id)}
                       />
                       <IntelAction
                         icon={Route}
                         label="Inspect route"
-                        onClick={() => onSelectEntity('route', selectedTransitPlan.route.id)}
+                        onClick={() => onSelectEntity('route', selected赶路Plan.route.id)}
                         tone="amber"
                       />
                     </div>
                   </div>
                   <div className="border border-[#30363D] bg-[#0d1117] p-4">
-                    <SectionTitle eyebrow="Road-trip Stops" title="Good break points" meta={`${selectedTransitPlan.stops.length} planned`} />
-                    {selectedTransitPlan.stops.length ? (
+                    <SectionTitle eyebrow="Road-trip Stops" title="启动od break points" meta={`${selected赶路Plan.stops.length} planned`} />
+                    {selected赶路Plan.stops.length ? (
                       <div className="grid gap-3 md:grid-cols-2">
-                        {selectedTransitPlan.stops.map((stop) => (
-                          <TransitStopCard key={stop.id} stop={stop} onSelectEntity={onSelectEntity} />
+                        {selected赶路Plan.stops.map((stop) => (
+                          <赶路StopCard key={stop.id} stop={stop} onSelectEntity={onSelectEntity} />
                         ))}
                       </div>
                     ) : (
@@ -3380,11 +3380,11 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
             ) : null}
 
             <div className="mt-5">
-              <PageNotesCard
-                title="Activities note"
-                value={getPageNote(doc, 'activities')}
-                onChange={(value) => onUpdatePageNote('activities', value)}
-                onConvert={() => onConvertPageNote('activities')}
+              <Page备注sCard
+                title="活动 note"
+                value={getPage备注(doc, 'activities')}
+                onChange={(value) => onUpdatePage备注('activities', value)}
+                onConvert={() => onConvertPage备注('activities')}
                 placeholder="Capture alternate plans, micro-itineraries, weather triggers, or new activity ideas..."
               />
             </div>
@@ -3395,28 +3395,28 @@ function ActivitiesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onCo
   )
 }
 
-function ExpensesPage({
+function 费用Page({
   doc,
   selection,
   currentFamily,
   onSelectEntity,
   onAddExpense,
-  onToggleExpenseSettled,
+  onToggleExpense已结,
   onUpdateExpenseFields,
   onSetExpenseAllocationMode,
   onUpdateExpenseAllocation,
   onResetExpenseAllocationsToEqual,
-  onUpdatePageNote,
-  onConvertPageNote,
+  onUpdatePage备注,
+  onConvertPage备注,
 }) {
   const activeExpenseId =
     selection.type === 'expense' && doc.expenses.some((expense) => expense.id === selection.id)
       ? selection.id
       : doc.expenses[0]?.id
   const activeExpense = doc.expenses.find((expense) => expense.id === activeExpenseId) || null
-  const [amountDraft, setAmountDraft] = useState('')
+  const [amountDraft, set金额Draft] = useState('')
   const [manualAllocationDrafts, setManualAllocationDrafts] = useState({})
-  const [customPayerDraft, setCustomPayerDraft] = useState('')
+  const [custom付款方Draft, setCustom付款方Draft] = useState('')
   const total = useMemo(() => doc.expenses.reduce((sum, expense) => sum + expense.amount, 0), [doc.expenses])
   const outstanding = useMemo(
     () => doc.expenses.filter((expense) => !expense.settled).reduce((sum, expense) => sum + expense.amount, 0),
@@ -3447,8 +3447,8 @@ function ExpensesPage({
   useEffect(() => {
     if (!activeExpense) return
 
-    setAmountDraft(activeExpense.amount === 0 ? '' : String(activeExpense.amount))
-    setCustomPayerDraft(payerMode === '__custom__' ? activeExpense.payer || '' : '')
+    set金额Draft(activeExpense.amount === 0 ? '' : String(activeExpense.amount))
+    setCustom付款方Draft(payerMode === '__custom__' ? activeExpense.payer || '' : '')
   }, [activeExpense, payerMode])
 
   useEffect(() => {
@@ -3467,11 +3467,11 @@ function ExpensesPage({
     )
   }, [activeExpense, doc.families])
 
-  const commitAmountDraft = useCallback(() => {
+  const commit金额Draft = useCallback(() => {
     if (!activeExpense) return
     const parsed = parseCurrencyInput(amountDraft)
     onUpdateExpenseFields(activeExpense.id, { amount: parsed })
-    setAmountDraft(parsed === 0 ? '' : String(parsed))
+    set金额Draft(parsed === 0 ? '' : String(parsed))
   }, [activeExpense, amountDraft, onUpdateExpenseFields])
 
   const commitManualAllocationDraft = useCallback((familyId) => {
@@ -3554,12 +3554,12 @@ function ExpensesPage({
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation()
-                  onToggleExpenseSettled(expense.id)
+                  onToggleExpense已结(expense.id)
                 }}
                 className="justify-self-end"
               >
-                <StatusPill tone={expense.settled ? 'Settled' : 'Open'}>
-                  {expense.settled ? 'Settled' : 'Open'}
+                <StatusPill tone={expense.settled ? '已结清' : '开放'}>
+                  {expense.settled ? '已结清' : '开放'}
                 </StatusPill>
               </button>
             </div>
@@ -3573,7 +3573,7 @@ function ExpensesPage({
             <SectionTitle
               eyebrow="Selected Expense"
               title={activeExpense.title}
-              meta={activeExpense.settled ? 'Settled' : 'Open'}
+              meta={activeExpense.settled ? '已结清' : '开放'}
             />
             {(activeExpense.createdByFamilyId || activeExpense.lastEditedByFamilyId) ? (
               <div className="mb-4 border border-[#30363D] bg-[#161b22] px-3 py-2 text-[11px] text-[#8B949E]">
@@ -3598,14 +3598,14 @@ function ExpensesPage({
                   />
                 </label>
                 <label className="grid gap-1.5">
-                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8B949E]">Payer</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8B949E]">付款方</span>
                   <div className="grid gap-2">
                     <select
                       value={payerMode}
                       onChange={(event) => {
                         const value = event.target.value
                         if (value === '__custom__') {
-                          onUpdateExpenseFields(activeExpense.id, { payer: customPayerDraft || activeExpense.payer || '' })
+                          onUpdateExpenseFields(activeExpense.id, { payer: custom付款方Draft || activeExpense.payer || '' })
                           return
                         }
                         onUpdateExpenseFields(activeExpense.id, { payer: value })
@@ -3621,9 +3621,9 @@ function ExpensesPage({
                     </select>
                     {payerMode === '__custom__' ? (
                       <input
-                        value={customPayerDraft}
-                        onChange={(event) => setCustomPayerDraft(event.target.value)}
-                        onBlur={() => onUpdateExpenseFields(activeExpense.id, { payer: customPayerDraft.trim() || 'Unassigned' })}
+                        value={custom付款方Draft}
+                        onChange={(event) => setCustom付款方Draft(event.target.value)}
+                        onBlur={() => onUpdateExpenseFields(activeExpense.id, { payer: custom付款方Draft.trim() || 'Unassigned' })}
                         placeholder="Custom payer label"
                         className="border border-[#30363D] bg-[#161b22] px-3 py-2 text-[11px] text-[#C9D1D9] outline-none focus:border-[#58A6FF]"
                       />
@@ -3631,12 +3631,12 @@ function ExpensesPage({
                   </div>
                 </label>
                 <label className="grid gap-1.5">
-                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8B949E]">Amount</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8B949E]">金额</span>
                   <input
                     inputMode="decimal"
                     value={amountDraft}
-                    onChange={(event) => setAmountDraft(event.target.value)}
-                    onBlur={commitAmountDraft}
+                    onChange={(event) => set金额Draft(event.target.value)}
+                    onBlur={commit金额Draft}
                     onFocus={(event) => event.target.select()}
                     placeholder="0"
                     className="border border-[#30363D] bg-[#161b22] px-3 py-2 text-[11px] text-[#C9D1D9] outline-none focus:border-[#58A6FF]"
@@ -3646,7 +3646,7 @@ function ExpensesPage({
                   <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8B949E]">Settlement</span>
                   <button
                     type="button"
-                    onClick={() => onToggleExpenseSettled(activeExpense.id)}
+                    onClick={() => onToggleExpense已结(activeExpense.id)}
                     className={cn(
                       'border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-left',
                       activeExpense.settled
@@ -3654,13 +3654,13 @@ function ExpensesPage({
                         : 'border-[#D29922]/30 bg-[#D29922]/10 text-[#D29922]',
                     )}
                   >
-                    {activeExpense.settled ? 'Settled' : 'Open'}
+                    {activeExpense.settled ? '已结清' : '开放'}
                   </button>
                 </div>
               </div>
 
               <div className="border border-[#30363D] bg-[#161b22] p-4">
-                <SectionTitle eyebrow="Split Mode" title="Family allocation" meta={EXPENSE_SPLIT_LABELS[activeExpense.allocationMode] || activeExpense.split} />
+                <SectionTitle eyebrow="分摊 Mode" title="Family allocation" meta={EXPENSE_SPLIT_LABELS[activeExpense.allocationMode] || activeExpense.split} />
                 <div className="mb-4 flex flex-wrap gap-2">
                   {[
                     { id: 'equal', label: 'Equal split' },
@@ -3783,11 +3783,11 @@ function ExpensesPage({
           </div>
         </div>
 
-        <PageNotesCard
-          title="Expenses note"
-          value={getPageNote(doc, 'expenses')}
-          onChange={(value) => onUpdatePageNote('expenses', value)}
-          onConvert={() => onConvertPageNote('expenses')}
+        <Page备注sCard
+          title="费用 note"
+          value={getPage备注(doc, 'expenses')}
+          onChange={(value) => onUpdatePage备注('expenses', value)}
+          onConvert={() => onConvertPage备注('expenses')}
           placeholder="Capture split assumptions, cash items, or things to settle after the trip..."
         />
       </div>
@@ -3795,29 +3795,29 @@ function ExpensesPage({
   )
 }
 
-function FamiliesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConvertPageNote }) {
+function 家庭Page({ doc, selection, onSelectEntity, onUpdatePage备注, onConvertPage备注 }) {
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[360px_1fr] overflow-hidden">
       <div className="overflow-y-auto border-r border-[#30363D] bg-[#161b22] p-6">
         <SectionTitle eyebrow="Travel Units" title="Family roster" />
         <FamilyList doc={doc} selection={selection} onSelectEntity={onSelectEntity} />
         <div className="mt-5">
-          <PageNotesCard
-            title="Families note"
-            value={getPageNote(doc, 'families')}
-            onChange={(value) => onUpdatePageNote('families', value)}
-            onConvert={() => onConvertPageNote('families')}
+          <Page备注sCard
+            title="家庭 note"
+            value={getPage备注(doc, 'families')}
+            onChange={(value) => onUpdatePage备注('families', value)}
+            onConvert={() => onConvertPage备注('families')}
             placeholder="Capture cross-family coordination details..."
           />
         </div>
       </div>
 
       <div className="overflow-y-auto bg-[#0d1117] p-6">
-        <SectionTitle eyebrow="Readiness" title="Family task posture" />
+        <SectionTitle eyebrow="准备度" title="Family task posture" />
         <div className="grid gap-4">
           {doc.families.map((family) => {
             const tasks = getTasksByFamily(doc, family.id)
-            const readiness = getFamilyReadiness(doc, family.id)
+            const readiness = getFamily准备度(doc, family.id)
             return (
               <SelectableCard
                 key={family.id}
@@ -3857,12 +3857,12 @@ function FamiliesPage({ doc, selection, onSelectEntity, onUpdatePageNote, onConv
   )
 }
 
-function withRefreshedFamilies(nextDoc) {
+function withRefreshed家庭(nextDoc) {
   return {
     ...nextDoc,
     families: nextDoc.families.map((family) => ({
       ...family,
-      readiness: getFamilyReadiness(nextDoc, family.id),
+      readiness: getFamily准备度(nextDoc, family.id),
     })),
   }
 }
@@ -3914,7 +3914,7 @@ function App() {
         map: {
           ...current.ui.map,
           focusFamilyId: 'all',
-          focusDayId: 'all',
+          focus天Id: 'all',
         },
       },
     }))
@@ -3986,7 +3986,7 @@ function App() {
             }
           : location,
       )
-      const nextFamilies = current.families.map((family) => {
+      const next家庭 = current.families.map((family) => {
         const defaults = FAMILY_VEHICLE_DEFAULTS[family.id]
         if (!defaults && family.id !== 'north-star') return family
 
@@ -4000,7 +4000,7 @@ function App() {
         }
       })
 
-      const nextRoutes = synchronizeRoutePaths(
+      const next路线 = synchronizeRoutePaths(
         current.routes.map((route) => {
           const defaults = ROUTE_SIM_DEFAULTS[route.id]
           if (!defaults) return route
@@ -4041,8 +4041,8 @@ function App() {
       return {
         ...current,
         locations: nextLocations,
-        families: nextFamilies,
-        routes: nextRoutes,
+        families: next家庭,
+        routes: next路线,
       }
     })
   }, [doc.families, doc.locations, doc.routes, setDoc])
@@ -4061,11 +4061,11 @@ function App() {
         return !currentItem || !initialItem || JSON.stringify(currentItem) !== JSON.stringify(initialItem)
       })
     }
-    const missingRoutes = initialDoc.routes.filter((route) => !doc.routes.some((currentRoute) => currentRoute.id === route.id))
+    const missing路线 = initialDoc.routes.filter((route) => !doc.routes.some((currentRoute) => currentRoute.id === route.id))
     const missingItineraryItems = initialDoc.itineraryItems.filter(
       (item) => !doc.itineraryItems.some((currentItem) => currentItem.id === item.id),
     )
-    const hasObsoleteRoutes = doc.routes.some((route) => OBSOLETE_PLAN_ROUTE_IDS.has(route.id))
+    const hasObsolete路线 = doc.routes.some((route) => OBSOLETE_PLAN_ROUTE_IDS.has(route.id))
     const hasObsoleteItineraryItems = doc.itineraryItems.some((item) => OBSOLETE_PLAN_ITINERARY_IDS.has(item.id))
     const needsPlanRefresh =
       collectionNeedsRefresh(doc.families, initialDoc.families, SEEDED_PLAN_REFRESH_IDS.families) ||
@@ -4076,7 +4076,7 @@ function App() {
       collectionNeedsRefresh(doc.routes, initialDoc.routes, SEEDED_PLAN_REFRESH_IDS.routes) ||
       collectionNeedsRefresh(doc.itineraryItems, initialDoc.itineraryItems, SEEDED_PLAN_REFRESH_IDS.itineraryItems)
 
-    if (!missingRoutes.length && !missingItineraryItems.length && !hasObsoleteRoutes && !hasObsoleteItineraryItems && !needsPlanRefresh) {
+    if (!missing路线.length && !missingItineraryItems.length && !hasObsolete路线 && !hasObsoleteItineraryItems && !needsPlanRefresh) {
       seededPlanRefreshRef.current = true
       return
     }
@@ -4099,7 +4099,7 @@ function App() {
         initialDoc.locations,
         SEEDED_PLAN_REFRESH_IDS.locations,
       )
-      const nextRoutes = synchronizeRoutePaths(
+      const next路线 = synchronizeRoutePaths(
         syncCollection(
           [
             ...current.routes,
@@ -4129,17 +4129,17 @@ function App() {
       return {
         ...current,
         selection: nextSelection,
-        pageNotes: {
-          ...current.pageNotes,
-          meals: initialDoc.pageNotes.meals,
-          activities: initialDoc.pageNotes.activities,
+        page备注s: {
+          ...current.page备注s,
+          meals: initialDoc.page备注s.meals,
+          activities: initialDoc.page备注s.activities,
         },
         families: syncCollection(current.families, initialDoc.families, SEEDED_PLAN_REFRESH_IDS.families),
         locations: nextLocations,
         meals: syncCollection(current.meals, initialDoc.meals, SEEDED_PLAN_REFRESH_IDS.meals),
         activities: syncCollection(current.activities, initialDoc.activities, SEEDED_PLAN_REFRESH_IDS.activities),
         tasks: syncCollection(current.tasks, initialDoc.tasks, SEEDED_PLAN_REFRESH_IDS.tasks),
-        routes: nextRoutes,
+        routes: next路线,
         itineraryItems: nextItineraryItems,
       }
     })
@@ -4148,17 +4148,17 @@ function App() {
     () => getSearchResults(displayDoc, displayDoc.ui.searchQuery),
     [displayDoc],
   )
-  const timelineWeatherDays = useMemo(
-    () => DAYS.map((day) => ({ ...day, ...getTripDayWeather(weatherState.targets, day) })),
+  const timelineWeather天s = useMemo(
+    () => DAYS.map((day) => ({ ...day, ...getTrip天Weather(weatherState.targets, day) })),
     [weatherState.targets],
   )
   const mapWeather = useMemo(
-    () => getMapWeather(weatherState.targets, doc.ui.map.focusDayId),
-    [doc.ui.map.focusDayId, weatherState.targets],
+    () => getMapWeather(weatherState.targets, doc.ui.map.focus天Id),
+    [doc.ui.map.focus天Id, weatherState.targets],
   )
   const mapWeatherTargets = useMemo(
-    () => getMapWeatherTargets(weatherState.targets, doc.ui.map.focusDayId),
-    [doc.ui.map.focusDayId, weatherState.targets],
+    () => getMapWeatherTargets(weatherState.targets, doc.ui.map.focus天Id),
+    [doc.ui.map.focus天Id, weatherState.targets],
   )
 
   const setSelectedPage = useCallback((pageId) => {
@@ -4457,13 +4457,13 @@ function App() {
               basecampDrive,
             })
           } catch {
-            // Keep fallback meal intel if Google data is unavailable.
+            // Keep fallback meal intel if 启动ogle data is unavailable.
           } finally {
             locationIntelHydrationRef.current.delete(location.id)
           }
         }
       } catch {
-        // Keep seeded meal data if Google libraries fail to load.
+        // Keep seeded meal data if 启动ogle libraries fail to load.
       }
     }
 
@@ -4528,23 +4528,23 @@ function App() {
     }
   }, [doc.locations, liveExternalData])
 
-  const updatePageNote = (pageId, value) => {
+  const updatePage备注 = (pageId, value) => {
     setDoc((current) => ({
       ...current,
-      pageNotes: { ...current.pageNotes, [pageId]: value },
-      pageNoteMeta: {
-        ...(current.pageNoteMeta || {}),
+      page备注s: { ...current.page备注s, [pageId]: value },
+      page备注Meta: {
+        ...(current.page备注Meta || {}),
         [pageId]: currentFamilyId
           ? {
               updatedByFamilyId: currentFamilyId,
               updatedAt: new Date().toISOString(),
             }
-          : current.pageNoteMeta?.[pageId],
+          : current.page备注Meta?.[pageId],
       },
     }))
   }
 
-  const updateEntityNote = (type, id, value) => {
+  const updateEntity备注 = (type, id, value) => {
     setDoc((current) => {
       const collectionName = {
         family: 'families',
@@ -4578,7 +4578,7 @@ function App() {
             : task,
         ),
       }
-      return withRefreshedFamilies(nextDoc)
+      return withRefreshed家庭(nextDoc)
     })
   }
 
@@ -4628,23 +4628,23 @@ function App() {
               })),
       }
 
-      return withRefreshedFamilies(nextDoc)
+      return withRefreshed家庭(nextDoc)
     })
   }
 
   const addActivity = ({ title, dayId, window, description }) => {
     if (!title?.trim()) return
 
-    const fallbackWindow = `${getDayMeta(dayId)?.shortLabel?.toUpperCase() || dayId?.toUpperCase() || 'DAY'} / flexible`
+    const fallback时间窗口 = `${get天Meta(dayId)?.shortLabel?.toUpperCase() || dayId?.toUpperCase() || 'DAY'} / flexible`
     const newActivity = stampFamilyMetadata({
       id: `activity-user-${Date.now()}`,
       type: 'activity',
       title: title.trim(),
       dayId: dayId || 'fri',
-      window: window?.trim() || fallbackWindow,
-      status: 'Pending',
-      riskLevel: 'Low',
-      weatherSensitivity: 'Low',
+      window: window?.trim() || fallback时间窗口,
+      status: '待处理',
+      riskLevel: '低',
+      weatherSensitivity: '低',
       locationId: dayId === 'sun' ? 'pine-airbnb' : null,
       linkedEntityKeys: [],
       taskIds: [],
@@ -4660,14 +4660,14 @@ function App() {
     }))
   }
 
-  const convertNoteToTask = (entityType, entityId) => {
+  const convert备注ToTask = (entityType, entityId) => {
     const entity = getEntityById(doc, entityType, entityId)
     if (!entity?.note?.trim()) return
     addTask(entityType, entityId, entity.note.trim().split('\n')[0].slice(0, 96))
   }
 
-  const convertPageNoteToTask = (pageId) => {
-    const note = getPageNote(doc, pageId)
+  const convertPage备注ToTask = (pageId) => {
+    const note = getPage备注(doc, pageId)
     if (!note.trim()) return
     const pageToEntityType = {
       itinerary: 'activity',
@@ -4695,13 +4695,13 @@ function App() {
       ...current,
       meals: current.meals.map((meal) =>
         meal.id === mealId
-          ? stampFamilyMetadata({ ...meal, status: meal.status === 'Assigned' ? 'Pending' : 'Assigned' }, currentFamilyId)
+          ? stampFamilyMetadata({ ...meal, status: meal.status === '已分配' ? '待处理' : '已分配' }, currentFamilyId)
           : meal,
       ),
     }))
   }
 
-  const toggleExpenseSettled = (expenseId) => {
+  const toggleExpense已结 = (expenseId) => {
     setDoc((current) => ({
       ...current,
       expenses: current.expenses.map((expense) =>
@@ -4860,8 +4860,8 @@ function App() {
     currentFamilyId,
     onSelectEntity: selectEntity,
     onOpenEntity: openEntity,
-    onUpdatePageNote: updatePageNote,
-    onConvertPageNote: convertPageNoteToTask,
+    onUpdatePage备注: updatePage备注,
+    onConvertPage备注: convertPage备注ToTask,
     onAddActivity: addActivity,
   }
 
@@ -4873,22 +4873,22 @@ function App() {
         onSetCursor={setTimelineCursor}
         onUpdateMapUi={updateMapUi}
         onHydrateRouteDetails={hydrateRouteDetails}
-        weatherDays={timelineWeatherDays}
+        weather天s={timelineWeather天s}
         mapWeather={mapWeather}
         mapWeatherTargets={mapWeatherTargets}
       />
     )
   } else if (displayDoc.selectedPage === 'stay') {
-    content = <StayPage {...pageProps} />
+    content = <住宿Page {...pageProps} />
   } else if (displayDoc.selectedPage === 'meals') {
-    content = <MealsPage {...pageProps} onToggleMealStatus={toggleMealStatus} />
+    content = <餐饮Page {...pageProps} onToggleMealStatus={toggleMealStatus} />
   } else if (displayDoc.selectedPage === 'activities') {
-    content = <ActivitiesPage {...pageProps} />
+    content = <活动Page {...pageProps} />
   } else if (displayDoc.selectedPage === 'expenses') {
     content = (
-      <ExpensesPage
+      <费用Page
         {...pageProps}
-        onToggleExpenseSettled={toggleExpenseSettled}
+        onToggleExpense已结={toggleExpense已结}
         onUpdateExpenseFields={updateExpenseFields}
         onSetExpenseAllocationMode={setExpenseAllocationMode}
         onUpdateExpenseAllocation={updateExpenseAllocation}
@@ -4897,7 +4897,7 @@ function App() {
       />
     )
   } else if (displayDoc.selectedPage === 'families') {
-    content = <FamiliesPage {...pageProps} />
+    content = <家庭Page {...pageProps} />
   }
 
   const mainWithInspector = (
@@ -4911,11 +4911,11 @@ function App() {
         onSelectEntity={selectEntity}
         onUpdateLocationFields={updateLocationFields}
         onToggleTask={toggleTask}
-        onUpdateEntityNote={updateEntityNote}
+        onUpdateEntity备注={updateEntity备注}
         onAddTask={addTask}
-        onConvertNoteToTask={convertNoteToTask}
+        onConvert备注ToTask={convert备注ToTask}
         onToggleMealStatus={toggleMealStatus}
-        onToggleExpenseSettled={toggleExpenseSettled}
+        onToggleExpense已结={toggleExpense已结}
       />
     </div>
   )
